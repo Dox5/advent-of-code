@@ -2,9 +2,6 @@
 
 import fileinput
 
-# Create a list of lines (strings) from the input file
-lines = list(fileinput.input())
-
 def fuel(x):    
     return (x//3)-2
 
@@ -23,5 +20,9 @@ def part2():
     fuel = [calcFuel(int(x), 1) for x in lines]
     return sum(fuel)
 
-print(part1())
-print(part2())
+if __name__ == "__main__":
+    # Create a list of lines (strings) from the input file
+    lines = list(fileinput.input())
+
+    print(part1())
+    print(part2())
