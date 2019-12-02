@@ -2,22 +2,7 @@
 
 import fileinput
 import sys
-
-def add(ins, i):
-    ins[ins[i+3]] = ins[ins[i+1]] + ins[ins[i+2]]
-
-def mul(ins, i):
-    ins[ins[i+3]] = ins[ins[i+1]] * ins[ins[i+2]]    
-
-def runComputer(ins):
-    ip = 0
-    ops = {1 : add, 2 : mul}
-    
-    while (oper := ins[ip]) != 99:
-        ops[oper](ins, ip)
-        ip += 4
-
-    return ins[0]
+from intcode import runComputer
 
 def part1(ins):
     p1i = list(ins)
@@ -27,8 +12,8 @@ def part1(ins):
 
 def part2(ins):
     target = 19690720
-    for noun in range(0, 101):
-        for verb in range(0, 101):
+    for noun in range(0, 100):
+        for verb in range(0, 100):
             testi = list(ins)
             testi[1] = noun
             testi[2] = verb
