@@ -1,52 +1,45 @@
 #!/usr/bin/python3
 
 import fileinput
-import operator
-from collections import defaultdict
 
-def distance(a,b):
-    return abs(a[0]-b[0])+abs(a[1]-b[1])
-
-def cycles(a):
-    wirea = [y for x,y in a if x == 0]
-    wireb = [y for x,y in a if x == 1]
-    return wirea[0] + wireb[0]
-
-def byDistance(pos, val):
-    return (pos, distance((0,0),pos))
-
-def byCycles(pos, val):
-    return (pos, cycles(val))
-
-def inspector(grid, oper):
-    crosses = [oper(key,val) for key,val in grid.items() if len(val) > 1 and key != (0,0) and len(set([x for x,y in val])) == 2]  
-    crosses.sort(key=operator.itemgetter(1))
-    return crosses[0][1]
-
-def createGrid(wires):
-    grid = defaultdict(list)
+def buildGrids(wires):
+    grids = []
     delta = {'U': (0,1), 'R': (1,0), 'D': (0,-1), 'L': (-1, 0)}    
 
-    for idx, wire in enumerate(wires):
-        pos = (0,0)
+    for wire in wires:
+        grid  = {}
+        pos   = (0,0)
         steps = 0
-        grid[pos].append((idx,steps))
         moves = wire.split(',')
         for move in moves:
             spaces = int(move[1:])
             direction = delta[move[0]]
             for i in range(spaces):
                 steps += 1
-                pos = tuple(x+y for x,y in zip(pos, direction))
-                grid[pos].append((idx,steps))    
+                pos = tuple(x+y for x,y in zip(pos,direction))
+                if pos not in grid:
+                    grid[pos] = steps
+        grids.append(grid)
+    return grids
 
-    return grid
+def crossovers(grids):
+    crossovers = grids[0].keys()
+    for grid in grids[1:]:
+        crossovers = crossovers & grid.keys()
+    return crossovers
+
+def nearestCross(crossovers):
+    return min([abs(x)+abs(y) for x,y in crossovers])
+
+def shortCircuit(crossovers, grids):
+    return min([sum([element[x] for element in grids]) for x in crossovers])
 
 def main():
     wires = fileinput.input()    
-    grid = createGrid(wires)
-    print(inspector(grid,byDistance))
-    print(inspector(grid,byCycles))
-    
+    grids = buildGrids(wires)
+    cross = crossovers(grids)
+    print(nearestCross(cross))
+    print(shortCircuit(cross,grids))
+               
 if __name__ == "__main__":
     main()
