@@ -12,14 +12,15 @@ def cycles(a):
     wireb = [y for x,y in a if x == 1]
     return wirea[0] + wireb[0]
 
-def part1(grid):
-    crosses = [(key, distance((0,0),key)) for key,val in grid.items() if len(val) > 1 and key != (0,0) and len(set([x for x,y in val])) == 2]  
-    crosses.sort(key=operator.itemgetter(1))
-    return crosses[0][1]
+def byDistance(pos, val):
+    return (pos, distance((0,0),pos))
 
-def part2(grid):        
-    crosses = [(key, cycles(val)) for key, val in grid.items() if len(val) > 1 and key != (0,0) and len(set([x for x,y in val])) == 2]
-    crosses.sort(key=operator.itemgetter(1))    
+def byCycles(pos, val):
+    return (pos, cycles(val))
+
+def inspector(grid, oper):
+    crosses = [oper(key,val) for key,val in grid.items() if len(val) > 1 and key != (0,0) and len(set([x for x,y in val])) == 2]  
+    crosses.sort(key=operator.itemgetter(1))
     return crosses[0][1]
 
 def createGrid(wires):
@@ -44,8 +45,8 @@ def createGrid(wires):
 def main():
     wires = fileinput.input()    
     grid = createGrid(wires)
-    print(part1(grid))
-    print(part2(grid))
+    print(inspector(grid,byDistance))
+    print(inspector(grid,byCycles))
     
 if __name__ == "__main__":
     main()
