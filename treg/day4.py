@@ -1,31 +1,33 @@
 #!/usr/bin/python3
 
 from collections import Counter
+import operator
 
 minimum = 172851
 maximum = 675869
 
+def validateGrouping(cnts, oper):
+    return len([e for e in cnts.elements() if oper(cnts[e], 2)]) > 0
+
 def main():
-    count = 0
-    count2 = 0
+    counta = []
+    countb = []
     for password in range(minimum, maximum):
         cnt = Counter()
         strPass = str(password)
         incCheck = ''.join(sorted(strPass))
-        repCheck = set(strPass)
-        cnt.update(strPass)
-
+        
         if strPass == incCheck:    
-            # Part 1
-            if len(repCheck) < len(strPass):
-                count = count + 1
+            cnt.update(strPass)
+
+            # Part 1            
+            counta.append(validateGrouping(cnt, operator.ge))
 
             # Part 2
-            if len([e for e in cnt.elements() if cnt[e] == 2]):
-                count2 = count2 + 1
+            countb.append(validateGrouping(cnt, operator.eq))
             
-    print(count)
-    print(count2)
+    print(sum(counta))
+    print(sum(countb))
             
 if __name__ == "__main__":
     main()
