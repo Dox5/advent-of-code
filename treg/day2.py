@@ -1,24 +1,30 @@
 #!/usr/bin/python3
 
 import fileinput
-import sys
-from intcode import runComputer
+from intcode import CPU
 
 def part1(ins):
     p1i = list(ins)
     p1i[1] = 12
     p1i[2] = 2
-    return runComputer(p1i)
+    cpu = CPU(p1i)
+    cpu.run()
+    return cpu.memory[0]
 
 def part2(ins):
     target = 19690720
+    testi = list(ins)
+    cpu = CPU(testi)
+    
     for noun in range(0, 100):
         for verb in range(0, 100):
-            testi = list(ins)
-            testi[1] = noun
-            testi[2] = verb
-            if runComputer(testi) == target:
+            cpu.memory[1] = noun
+            cpu.memory[2] = verb
+            cpu.run()
+            if cpu.memory[0] == target:
                 return (100*noun)+verb
+            else:
+                cpu.reset()
     
 if __name__ == "__main__":
     line = list(fileinput.input())[0]
