@@ -1,8 +1,12 @@
+clear;
 LB = 387638;
 UB = 919123;
-passwords = [];
+passwords = zeros(10000, 'int32');
+point = 1;
 for i = LB:UB
-    list = str2double(regexp(num2str(i),'\d','match'));
+    cells = (regexp(num2str(i),'\d','match'));
+    nums = sprintf('%s ', cells{:});
+    list = sscanf(nums, '%d');
     ascending = 0;
     pair = 0;
     num_list = [];
@@ -21,6 +25,8 @@ for i = LB:UB
         end
     end
     if ascending == 1 && pair == 1
-        passwords = [passwords;i];
+        passwords(point) = i;
+        point = point + 1;
     end
 end
+passwords = nonzeros(passwords');

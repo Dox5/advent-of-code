@@ -1,3 +1,4 @@
+clear;
 day3 = fopen('input.txt','r');
 day3Data = textscan(day3, '%s', 'Delimiter', ',');
 fclose(day3);
@@ -62,12 +63,13 @@ for i = L2
     end
 end
 [row, column] = find(map(:,:,1) == 4);
-dis_tot = 0;
+dis_tot = zeros(100);
 for i = 1:length(row)
-    dis_tot = [dis_tot;map(row(i),column(i),2) + map(row(i),column(i),3)];
+    dis_tot(i) = map(row(i),column(i),2) + map(row(i),column(i),3);
 end
+dis_tot = nonzeros(dis_tot');
 row = row - 10001;
 column = column - 10001;
 dist = abs(row) + abs(column);
 [min_val, ~] = min(dist);
-[min_tot, ~] = min(dis_tot(2:end));
+[min_tot, ~] = min(dis_tot);

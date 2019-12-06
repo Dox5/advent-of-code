@@ -1,3 +1,4 @@
+clear;
 output = 0;
 while output ~= 19690720
     for noun = 0:99

@@ -1,6 +1,7 @@
 day1 = fopen('input.txt', 'r');
 day1Data = fscanf(day1, '%d');
 day1Data1 = transpose(day1Data);
+fclose(day1);
 day1Ans = [];
 day1Ans2 = [];
 for i = day1Data1
