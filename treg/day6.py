@@ -2,44 +2,36 @@
 
 import fileinput
 import collections
+import functools
 
-def orbitCount(omap, start, depth=-1):
-    depth += 1
-    subs = 0
-    for d in omap[start]:
-        subs += orbitCount(omap, d, depth)
+omap = {}
 
-    return depth+subs
+# Not a big difference with small input, but adding a cache makes
+# the problem much faster on larger inputs using this method
+@functools.lru_cache
+def towardCOM(moon):
+    return 0 if moon == 'COM' else towardCOM(omap[moon]) + 1
 
-def host(omap, id):
-    return [x for x in omap if id in omap[x]][0]
+def route(moon):
+    return [] if moon == 'COM' else route(omap[moon]) + [moon]
 
-def route(omap, id):
-    s = [host(omap, id)]
-    while s[-1] != 'COM':
-        s.append(host(omap, s[-1]))
-    return s
+def orbitCount():
+    count = 0
+    return sum([towardCOM(moon) for moon in omap])
 
-def toSanta(omap, start='YOU', depth=0):
-    youhost = route(omap, 'YOU')
-    sanhost = route(omap, 'SAN')
-           
-    onlysan = set(sanhost) - set(youhost)
-    onlyyou = set(youhost) - set(sanhost)
+def santa():
+    santa_route = route('SAN')
+    you_route = route('YOU')
+    uniq_parts = set(santa_route) ^ set(you_route)
+    return len(uniq_parts)-2
     
-    return len(onlysan)+len(onlyyou)
-
 def main():
-    l = list(fileinput.input())
-    orbits = [(x[0],x[1][:-1]) for x in (x.split(')') for x in l)]
-    omap = collections.defaultdict(list)
-    for (x,y) in orbits:
-        omap[x].append(y)
-        if not y in omap:
-            omap[y] = []
+    global omap
+    orbits = [x.split(')') for x in (x.strip() for x in list(fileinput.input()))]
+    omap = {y:x for x,y in orbits}
 
-    print(orbitCount(omap,'COM'))
-    print(toSanta(omap))
+    print(orbitCount())
+    print(santa())
     
 if __name__ == "__main__":
     main()
