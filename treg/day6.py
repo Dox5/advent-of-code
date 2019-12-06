@@ -16,7 +16,6 @@ def route(moon):
     return [] if moon == 'COM' else route(omap[moon]) + [moon]
 
 def orbitCount():
-    count = 0
     return sum([towardCOM(moon) for moon in omap])
 
 def santa():
