@@ -35,7 +35,7 @@ execute :: Decoder.Instruction -> Program -> VmState -> (VmState, Program)
 
 execute Decoder.Halt p vm = (setHalt vm, p)
 
-execute (Decoder.Binary op a b dest) p vm =
+execute (Decoder.Binary op (Decoder.Positional a) (Decoder.Positional b) (Decoder.Positional dest)) p vm =
   let
     impl = getBinaryOpImpl op
     valA = p ! a
