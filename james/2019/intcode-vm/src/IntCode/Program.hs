@@ -4,6 +4,8 @@ module IntCode.Program where
 import Data.IntMap.Strict (IntMap)
 import qualified Data.IntMap.Strict as IntMap
 
+import qualified Data.IntMap.Strict as IntMap
+
 data Program = Program (IntMap Int)
   deriving (Show, Eq)
 
@@ -13,8 +15,11 @@ data Program = Program (IntMap Int)
 load :: [Int] -> Program
 load instructions = Program . IntMap.fromList .  zip [0 :: Int ..] $ instructions
 
-writeTo :: Program -> Int -> Int -> Program
-writeTo (Program memory) idx val = Program . IntMap.insert idx val $ memory
+setAddress :: Program -> Int -> Int -> Program
+setAddress (Program m) i v =
+  let
+    m' = IntMap.insert i v m
+  in Program m'
 
 makeResult :: Program -> [Int]
 makeResult (Program memory) = map (\(_, v) -> v) . IntMap.toList $ memory

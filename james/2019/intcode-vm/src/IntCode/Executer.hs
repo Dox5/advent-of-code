@@ -6,8 +6,10 @@ import IntCode.Program
 import Control.Monad.State (State)
 import qualified Control.Monad.State as State
 
+
 -- Holds the current execution state
 data VmState = VmState {
+  prog :: Program,
   halt :: Bool,
   ip :: Int
 }
@@ -19,50 +21,85 @@ data Result = Result {
 }
   deriving (Show)
 
-initialVmState = VmState False 0
+-- Memory write access
+writeTo :: Int -> Int -> State VmState ()
+writeTo address value = do
+  vm <- State.get
+  let
+    p = prog vm
+    p' = setAddress p address value
+  State.put vm{prog = p'}
+
+readFrom :: Int -> State VmState Int
+readFrom address = do
+  vm <- State.get
+  let
+    p = prog vm
+    v = p ! address
+  return . seq v $ v -- Ensure that memory accesses are validated at this point
+
+-- Get the value for an input operand
+evalInputOperand :: Decoder.Operand -> State VmState Int
+evalInputOperand (Decoder.Immediate v) = return v
+evalInputOperand (Decoder.Positional address) = do readFrom address
+
+initialVmState :: Program -> VmState
+initialVmState p = VmState p False 0
 
 getBinaryOpImpl :: Decoder.BinOp -> (Int -> Int -> Int)
 getBinaryOpImpl Decoder.Add  = (+)
 getBinaryOpImpl Decoder.Mult = (*)
 
-incrementIp :: Int -> VmState -> VmState
-incrementIp amount (VmState h ip) = VmState h (ip + amount)
+incrementIp :: Int -> State VmState Int
+incrementIp amount = do
+  vm <- State.get 
+  let ip' = (ip vm) + amount
+  State.put vm{ip = ip'}
+  return ip'
 
-setHalt :: VmState -> VmState
-setHalt (VmState _ ip) = VmState True ip
+setHalt :: State VmState ()
+setHalt = do
+  vm <- State.get
+  State.put vm{halt = True}
+  return ()
 
-execute :: Decoder.Instruction -> Program -> VmState -> (VmState, Program)
+execute :: Decoder.Instruction -> State VmState ()
 
-execute Decoder.Halt p vm = (setHalt vm, p)
+execute Decoder.Halt = setHalt
 
-execute (Decoder.Binary op (Decoder.Positional a) (Decoder.Positional b) (Decoder.Positional dest)) p vm =
+execute (Decoder.Binary op opA opB (Decoder.Positional dest)) = do
+  valA <- evalInputOperand opA
+  valB <- evalInputOperand opB
   let
     impl = getBinaryOpImpl op
-    valA = p ! a
-    valB = p ! b
     computed = impl valA valB
-  in (incrementIp 4 vm, (writeTo p dest computed))
 
---execute _ _ _ = error "Illegal instruction"
+  writeTo dest computed
+  incrementIp 4
+  return ()
 
-fetchDecode :: VmState -> Program -> Decoder.Instruction
-fetchDecode vm p =
-  let
-    -- Get the values for (potentially) the longest instruction
-    -- TODO: Stop this breaking for short instructions (such as HALT
-    codes = [p ! ((ip vm) + offset) | offset <- [0..Decoder.longestInstruction-1]]
-  in Decoder.decode codes
+execute instruction = error $ "Illegal instruction" ++ show instruction
 
-step :: Program -> State VmState Result
-step prog = do
-  vm <- State.get
+fetchDecode :: State VmState Decoder.Instruction
+fetchDecode =
+  do
+    vm <- State.get
+    let p = prog vm
+    -- Get the values for (potentially) the longest instruction, lazy evaluation
+    -- means that the list will always be the right length (even if the extra
+    -- elements cause an error if ever evaluated). This allows a HALT at the end
+    -- of a program to be handled in the same way as a full size instruction
+    return $ Decoder.decode $ [p ! ((ip vm) + offset) | offset <- [0..Decoder.longestInstruction-1]]
+
+step :: State VmState Result
+step = do
+  inst <- fetchDecode
+  execute inst
+  vm <- State.get 
   if halt vm then
-    return . Result . head . makeResult $ prog
+    return . Result . head . makeResult . prog $ vm
   else
-    do
-      let (vm', prog') = execute (fetchDecode vm prog) prog vm
-      State.put vm'
-      step prog'
+    step  
 
 run :: Program -> Result
-run p = State.evalState (step p) initialVmState
+run p = State.evalState step (initialVmState p)
