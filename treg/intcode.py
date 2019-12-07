@@ -104,7 +104,8 @@ class CPU():
         self.sendOutput = lambda x : None
         self.modes = '0' * CPU.MAX_OPERANDS
         self.op = self._end
-
+        self.isFinished = False
+        
         if inputter != None:
             self.getInput = inputter()
         if outputter != None:
@@ -113,6 +114,10 @@ class CPU():
     def reset(self):
         self.memory = list(self.origMemory)
         self.ip = 0
+        self.isFinished = False
+        
+    def finished(self):
+        return self.isFinished
         
     def run(self):
         try:
@@ -120,4 +125,7 @@ class CPU():
                 self._decodeOp()
                 self.op()
         except EndOfComputation:
+            self.isFinished = True
+            return
+        except AwaitingInput:
             return

@@ -1,10 +1,11 @@
 #!/usr/bin/python
 import fileinput
-from intcode import CPU, AwaitingInput
+from intcode import CPU
 from itertools import permutations
 
+AMP_STAGES = 5
+
 def run(ins, perms):
-    connections = [0,None,None,None,None]
     def inputBuilder(phase, loc):
         def input():
             yield phase
@@ -16,25 +17,20 @@ def run(ins, perms):
 
     def outputBuilder(loc):
         def output(x):
-            connections[(loc+1)%5] = x
+            connections[(loc+1)%AMP_STAGES] = x
         return output
 
     best = 0
         
     for p in perms:
         connections = [0,None,None,None,None]        
-        inputs = [inputBuilder(phase,pos) for phase,pos in zip(p,range(5))]
-        outputs = [outputBuilder(pos) for pos in range(5)]
-        cpus = [CPU(ins,inputs[x],outputs[x]) for x in range(5)]
+        inputs = [inputBuilder(phase,pos) for phase,pos in zip(p,range(AMP_STAGES))]
+        outputs = [outputBuilder(pos) for pos in range(AMP_STAGES)]
+        cpus = [CPU(ins,inputs[x],outputs[x]) for x in range(AMP_STAGES)]
 
-        pendingInput = 1
-        while pendingInput != 0:
-            pendingInput = 0            
+        while not all([cpu.finished() for cpu in cpus]):
             for c in cpus:
-                try:
-                    c.run()
-                except AwaitingInput as e:
-                    pendingInput += 1
+                c.run()
 
         if connections[0] > best:
             best = connections[0]
@@ -44,8 +40,8 @@ def run(ins, perms):
 def main():
     line = list(fileinput.input())[0].strip()
     instructions = [int(x) for x in line.split(',')]
-    print(run(instructions, permutations(range(5))))
-    print(run(instructions, permutations(range(5,10))))    
+    print(run(instructions, permutations(range(AMP_STAGES))))
+    print(run(instructions, permutations(range(AMP_STAGES,AMP_STAGES*2))))    
     
 if __name__ == "__main__":
     main()
