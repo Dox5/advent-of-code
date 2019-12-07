@@ -1,65 +1,65 @@
 clear;
 output = 0;
 input = 5;
-day2 = fopen('input.txt','r');
-day2Data = textscan(day2, '%d', 'Delimiter', ',');
-day2Data = day2Data{1};
-day2Data = transpose(day2Data);
-fclose(day2);
+day5 = fopen('input.txt','r');
+day5Data = textscan(day5, '%d', 'Delimiter', ',');
+day5Data = day5Data{1};
+day5Data = transpose(day5Data);
+fclose(day5);
 i = 1;
 print_out = [];
 while i ~= 0
-    list = str2double(regexp(num2str(day2Data(i)),'\d','match'));
-    if day2Data(i) ~= 99
-        pos1 = day2Data(i+1)+1;
-        pos2 = day2Data(i+2)+1;
-        outpos = day2Data(i+3)+1;
+    list = str2double(regexp(num2str(day5Data(i)),'\d','match'));
+    if day5Data(i) ~= 99
+        pos1 = day5Data(i+1)+1;
+        pos2 = day5Data(i+2)+1;
+        outpos = day5Data(i+3)+1;
     end
-    if length(list) > 1 && day2Data(i) ~= 99
+    if length(list) > 1 && day5Data(i) ~= 99
         opcode = list(length(list));
         if length(list) == 4
             if list(1) == 1
-                second = day2Data(i+2);
+                second = day5Data(i+2);
             else
-                second = day2Data(pos2);
+                second = day5Data(pos2);
             end
             if list(2) == 1
-                first = day2Data(i+1);
+                first = day5Data(i+1);
             else
-                first = day2Data(pos1);
+                first = day5Data(pos1);
             end
         else
             if list(1) == 1
-                first = day2Data(i+1);
+                first = day5Data(i+1);
             else
-                first = day2Data(pos1);
+                first = day5Data(pos1);
             end
             if opcode < 3 || opcode > 4
-                second = day2Data(pos2);
+                second = day5Data(pos2);
             end
         end    
-    elseif day2Data(i) == 99
-        output = day2Data(1);
+    elseif day5Data(i) == 99
+        output = day5Data(1);
         i = 1;
         break
     else
-        opcode = day2Data(i);
-        first = day2Data(pos1);
+        opcode = day5Data(i);
+        first = day5Data(pos1);
         if opcode < 3 || opcode > 4
-            second = day2Data(pos2);
+            second = day5Data(pos2);
         end
     end
     if opcode == 1
-        day2Data(outpos) = first + second;
+        day5Data(outpos) = first + second;
         i = i + 4;
     elseif opcode == 2
-        day2Data(outpos) = first * second;
+        day5Data(outpos) = first * second;
         i = i + 4;
     elseif opcode == 3
-        day2Data(pos1) = input;
+        day5Data(pos1) = input;
         i = i + 2;
     elseif opcode == 4
-        print_out = [print_out;day2Data(pos1)];
+        print_out = [print_out;day5Data(pos1)];
         i = i + 2;
     elseif opcode == 5
         if first ~= 0
@@ -75,16 +75,16 @@ while i ~= 0
         end
     elseif opcode == 7
         if first < second
-            day2Data(outpos) = 1;
+            day5Data(outpos) = 1;
         else
-            day2Data(outpos) = 0;
+            day5Data(outpos) = 0;
         end
         i = i + 4;
     elseif opcode == 8
         if first == second
-            day2Data(outpos) = 1;
+            day5Data(outpos) = 1;
         else
-            day2Data(outpos) = 0;
+            day5Data(outpos) = 0;
         end
         i = i + 4;
     end
