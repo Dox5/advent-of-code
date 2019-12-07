@@ -4,9 +4,11 @@ module IntCode (
 
   Result,
   left,
+  output,
 
   load,
-  run
+  run,
+  runWithInput
 )
 where
 

@@ -20,6 +20,3 @@ setAddress (Program m) i v =
   let
     m' = IntMap.insert i v m
   in Program m'
-
-makeResult :: Program -> [Int]
-makeResult (Program memory) = map (\(_, v) -> v) . IntMap.toList $ memory
