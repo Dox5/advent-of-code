@@ -2,6 +2,7 @@
 import fileinput
 from intcode import CPU
 from itertools import permutations
+import operator
 
 AMP_STAGES = 5
 
@@ -20,7 +21,7 @@ def run(ins, perms):
             connections[(loc+1)%AMP_STAGES] = x
         return output
 
-    best = 0
+    best = {}
         
     for p in perms:
         connections = [0,None,None,None,None]        
@@ -32,10 +33,10 @@ def run(ins, perms):
             for c in cpus:
                 c.run()
 
-        if connections[0] > best:
-            best = connections[0]
+        best[p] = connections[0]
 
-    return best
+    bestperm = max(best, key=lambda k: best[k])
+    return (bestperm, best[bestperm])
 
 def main():
     line = list(fileinput.input())[0].strip()
