@@ -9,6 +9,10 @@ class EndOfComputation(Error):
     """Raised when computation completes. Result in result attribute"""
     pass
 
+class AwaitingInput(Error):
+    """Raised when Computation needs more data but it isn't there yet"""
+    pass
+
 class CPU():
 
     MAX_OPERANDS = 4
@@ -35,7 +39,11 @@ class CPU():
         self.ip += 4
 
     def _inp(self):
-        self.setParam(0, next(self.getInput))
+        value = next(self.getInput)
+        if value is None:
+            raise AwaitingInput()
+        
+        self.setParam(0, value)
         self.ip += 2
 
     def _out(self):
