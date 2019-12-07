@@ -1,6 +1,6 @@
 module Main where
 
-import qualified Vm as Vm
+import qualified IntCode as Vm
 
 initialMemory :: Int -> Int -> Vm.Program
 initialMemory noun verb = Vm.load
@@ -15,11 +15,11 @@ initialMemory noun verb = Vm.load
       1, 119,   6, 123,   1, 123,   2, 127,   1, 127,   5,   0,  99,   2,  14,
       0,   0]
 
+simpleResult :: Vm.Program -> Int
+simpleResult = Vm.left . Vm.run
+
 part1Program :: Vm.Program
 part1Program = initialMemory 12 2 
-
-simpleResult :: Vm.Program -> Int
-simpleResult = head . Vm.execute
 
 part1 :: Int
 part1 = simpleResult part1Program

@@ -1,6 +1,6 @@
-name:                day02-intcode
+name:                intcode-vm
 version:             0.1.0.0
-github:              "githubuser/day02-intcode"
+github:              "githubuser/intcode-vm"
 license:             BSD3
 author:              "Author name here"
 maintainer:          "example@example.com"
@@ -17,24 +17,36 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/day02-intcode#readme>
+description:         Please see the README on GitHub at <https://github.com/githubuser/intcode-vm#readme>
 
 dependencies:
 - base >= 4.7 && < 5
+- containers >= 0.6 && < 1
+- mtl >= 2.2 && < 3
 
 library:
   source-dirs: src
 
-executables:
-  day02-intcode-exe:
-    main:                Main.hs
-    source-dirs:         app
+#executables:
+#  intcode-vm-exe:
+#    main:                Main.hs
+#    source-dirs:         app
+#    ghc-options:
+#    - -threaded
+#    - -rtsopts
+#    - -with-rtsopts=-N
+#    dependencies:
+#    - intcode-vm
+
+tests:
+  intcode-vm-test:
+    main:                Spec.hs
+    source-dirs:         test
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    - -O2
     - -Wall
     dependencies:
-    - day02-intcode
     - intcode-vm
+    - hspec >= 2.7 && < 3
