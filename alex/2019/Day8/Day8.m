@@ -40,3 +40,4 @@ for i = 1:width
         end
     end
 end
+imshow(image);
