@@ -59,6 +59,12 @@ spec = do
           [3, 0, 99]
         `shouldSatisfy` leftResultIs 5
 
+    context "output an immediate" $ do
+      it "should output operand" $ do
+        loadAndRun
+          [104, 2, 99]
+        `shouldSatisfy` outputIs [2]
+
     context "multiply two numbers" $ do
       it "should multiple two input numbers and output" $ do
         loadAndRunWithInput [9, 100]

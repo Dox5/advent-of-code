@@ -62,6 +62,10 @@ spec = do
              (Binary Mult (Positional 17) (Immediate 18) (Positional 14))
              [1002, 17, 18, 14]
 
+    makeTest "immediate output"
+             (OneOp Output (Immediate 181))
+             [104, 181]
+
     makeTest "halt with mode still halt" Halt [199]
 
     makeErrorTest "binary destination cannot be immediate"

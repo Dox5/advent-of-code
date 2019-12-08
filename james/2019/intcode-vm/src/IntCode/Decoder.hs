@@ -67,7 +67,7 @@ decodeOperandPositionalOnly m v =
     decoded = decodeOperand m v
   in case decoded of
        (Positional _) -> decoded 
-       _ -> error "Decode failed only positional address mode allowed here" 
+       op -> error $ "Decode failed only positional address mode allowed here, value was " ++ show op
 
 splitOp :: Int -> (CodePoint, [OpMode])
 splitOp op =
@@ -88,7 +88,9 @@ decodeBinOp _ _ = error "Not enough operands for Binary Operation"
 decodeOneOp :: SingleOp -> [(OpMode, Int)] -> Instruction
 decodeOneOp op (operand:_) = (OneOp op (dec operand))
   where
-    dec = uncurry decodeOperandPositionalOnly
+    dec = case op of
+            Input  -> uncurry decodeOperandPositionalOnly
+            Output -> uncurry decodeOperand
 decodeOneOp op [] = error "Decode failed not enough operands"
 
 fullDecode :: (CodePoint, [OpMode]) -> [Int] -> Instruction
