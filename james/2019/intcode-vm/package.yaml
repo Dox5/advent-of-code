@@ -28,16 +28,20 @@ dependencies:
 library:
   source-dirs: src
 
-#executables:
-#  intcode-vm-exe:
-#    main:                Main.hs
-#    source-dirs:         app
-#    ghc-options:
-#    - -threaded
-#    - -rtsopts
-#    - -with-rtsopts=-N
-#    dependencies:
-#    - intcode-vm
+executables:
+  intcode-vm-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -Wall
+    - -Werror
+    - -O2
+    dependencies:
+    - intcode-vm
+    - cmdargs >= 0.10 && < 1
 
 tests:
   intcode-vm-test:
@@ -47,6 +51,7 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Werror
     - -Wall
     dependencies:
     - intcode-vm

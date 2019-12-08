@@ -42,6 +42,7 @@ packages:
 extra-deps:
 - hspec-2.7.1
 - deepseq-1.4.4.0
+- cmdargs-0.10.20
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
