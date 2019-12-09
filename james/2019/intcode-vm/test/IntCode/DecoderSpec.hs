@@ -49,6 +49,10 @@ spec = do
              (OneOp Output (Positional 75))
              [4, 75]
 
+    makeTest "change relative base"
+             (OneOp ChangeBasePtr (Positional 75))
+             [9, 75]
+
   describe "Jump instructions" $ do
     makeTest "jump if true, positional"
       (Jmp NonZero (Positional 25) (Positional 100))
@@ -88,6 +92,10 @@ spec = do
     makeTest "immediate output"
              (OneOp Output (Immediate 181))
              [104, 181]
+
+    makeTest "output with relative"
+             (OneOp Output (Relative 32))
+             [204, 32]
 
     makeTest "halt with mode still halt" Halt [199]
 

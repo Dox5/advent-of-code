@@ -1,21 +1,19 @@
 -- Instruction decoder
 module IntCode.Decoder where
 
-import IntCode.Program
-
 import qualified Control.DeepSeq as DeepSeq
 
 -- The longest instruction (including op-codes
 longestInstruction :: Int
 longestInstruction = 4
 
-data Operand = Positional Int | Immediate Int
+data Operand = Positional Int | Immediate Int | Relative Int
   deriving (Show, Eq)
 
 data BinOp = Add | Mult | LessThan | Equal
   deriving (Show, Eq)
 
-data SingleOp = Input | Output
+data SingleOp = Input | Output | ChangeBasePtr
   deriving (Show, Eq)
 
 data JmpWhen = Zero | NonZero
@@ -51,11 +49,17 @@ instance DeepSeq.NFData SingleOp where
 instance DeepSeq.NFData Operand where
   rnf (Positional x) = (DeepSeq.rnf x)
   rnf (Immediate  x) = (DeepSeq.rnf x)
+  rnf (Relative x)   = (DeepSeq.rnf x)
+
+instance DeepSeq.NFData JmpWhen where
+  rnf Zero = ()
+  rnf NonZero = ()
 
 instance DeepSeq.NFData Instruction where
   rnf (Halt) = ()
   rnf (Binary op a b d) = DeepSeq.rnf (op, a, b, d)
   rnf (OneOp op a) = DeepSeq.rnf (op, a)
+  rnf (Jmp op w c) = DeepSeq.rnf (op, w, c)
 
 -- Raw modes decoded from the instruction
 newtype OpMode = OpMode Int
@@ -68,15 +72,16 @@ newtype CodePoint = CodePoint Int
 decodeOperand :: OpMode -> Int -> Operand
 decodeOperand (OpMode 0) v = Positional v
 decodeOperand (OpMode 1) v = Immediate v
+decodeOperand (OpMode 2) v = Relative v
 decodeOperand x _ = error $ "Decode failed unknown OpMode: " ++ show x
 
-decodeOperandPositionalOnly :: OpMode -> Int -> Operand
-decodeOperandPositionalOnly m v =
+decodeOperandNotImmediate :: OpMode -> Int -> Operand
+decodeOperandNotImmediate m v =
   let
     decoded = decodeOperand m v
   in case decoded of
-       (Positional _) -> decoded 
-       op -> error $ "Decode failed only positional address mode allowed here, value was " ++ show op
+       (Immediate _) -> error $ "Immediate operand mode not allowed here"
+       _ -> decoded
 
 splitOp :: Int -> (CodePoint, [OpMode])
 splitOp op =
@@ -86,21 +91,21 @@ splitOp op =
   in (CodePoint operation, modes)
 
 decodeBinOp :: BinOp -> [(OpMode, Int)] -> Instruction
-decodeBinOp op (a:b:dest:_) =
+decodeBinOp op (a:b:d:_) =
   let
     opA  = (uncurry decodeOperand) a
     opB  = (uncurry decodeOperand) b
-    opDest = (uncurry decodeOperandPositionalOnly) dest
+    opDest = (uncurry decodeOperandNotImmediate) d
   in Binary op opA opB opDest
-decodeBinOp _ _ = error "Not enough operands for Binary Operation"
+decodeBinOp _ _ = error "Decode failed, not enough operands for binary op"
 
 decodeOneOp :: SingleOp -> [(OpMode, Int)] -> Instruction
 decodeOneOp op (operand:_) = (OneOp op (dec operand))
   where
     dec = case op of
-            Input  -> uncurry decodeOperandPositionalOnly
-            Output -> uncurry decodeOperand
-decodeOneOp op [] = error "Decode failed not enough operands"
+            Input  -> uncurry decodeOperandNotImmediate
+            _ -> uncurry decodeOperand
+decodeOneOp _ [] = error "Decode failed, not enough operands for oneop"
 
 decodeJump :: JmpWhen -> [(OpMode, Int)] -> Instruction
 decodeJump w (c:t:_) =
@@ -108,6 +113,7 @@ decodeJump w (c:t:_) =
     c' = (uncurry decodeOperand) c
     t' = (uncurry decodeOperand) t
   in Jmp w c' t'
+decodeJump _ _ = error "Decode failed, not enough operands for jump"
 
 fullDecode :: (CodePoint, [OpMode]) -> [Int] -> Instruction
 fullDecode (code, modes) operandValues = 
@@ -123,6 +129,7 @@ fullDecode (code, modes) operandValues =
     (CodePoint  6) -> decodeJump Zero operands
     (CodePoint  7) -> decodeBinOp LessThan operands
     (CodePoint  8) -> decodeBinOp Equal operands
+    (CodePoint  9) -> decodeOneOp ChangeBasePtr operands
     (CodePoint  x) -> error $ "Decode failed unknown CodePoint: " ++ show x
 
 
@@ -130,5 +137,5 @@ fullDecode (code, modes) operandValues =
 -- prog is a section of the program, first value is expected to the be op code
 decode :: [Int] -> Instruction
 decode (opcode:operands) = fullDecode (splitOp opcode) operands
-
+decode _ = error "Must provide slice of longestInstruction instructions to decode"
 

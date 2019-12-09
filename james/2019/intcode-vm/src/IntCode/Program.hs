@@ -4,8 +4,6 @@ module IntCode.Program where
 import Data.IntMap.Strict (IntMap)
 import qualified Data.IntMap.Strict as IntMap
 
-import qualified Data.IntMap.Strict as IntMap
-
 data Program = Program (IntMap Int)
   deriving (Show, Eq)
 

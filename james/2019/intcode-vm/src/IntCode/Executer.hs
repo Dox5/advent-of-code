@@ -14,6 +14,7 @@ data VmState = VmState {
   prog :: Program,
   halt :: Bool,
   ip :: Int,
+  basePtr :: Int,
   outputChain :: OutputS,
   input :: [Int]
 }
@@ -61,6 +62,17 @@ doInput = do
     (v:rest) -> State.put vm {input = rest} >> return v
     []       -> error "Requsted input but had nothing to give" 
 
+getBasePtr :: State VmState Int
+getBasePtr = do
+  vm <- State.get
+  return $ basePtr vm
+
+setBasePtr :: Int -> State VmState ()
+setBasePtr base = do
+  vm <- State.get
+  State.put vm{basePtr = base}
+  return ()
+
 makeResult :: State VmState Result
 makeResult = do
   vm <- State.get
@@ -73,10 +85,14 @@ makeResult = do
 evalInputOperand :: Decoder.Operand -> State VmState Int
 evalInputOperand (Decoder.Immediate v) = return v
 evalInputOperand (Decoder.Positional address) = do readFrom address
+evalInputOperand (Decoder.Relative offset) = do
+  base <- getBasePtr
+  readFrom (base + offset)
 
 initialVmState :: Program -> VmState
 initialVmState p = VmState {
     ip = 0,
+    basePtr = 0,
     prog = p,
     halt = False,
     outputChain = id,
@@ -143,6 +159,12 @@ execute (Decoder.OneOp Decoder.Input (Decoder.Positional address)) = do
   incrementIp 2
   return ()
 
+execute (Decoder.OneOp Decoder.ChangeBasePtr opA) = do
+  val <- evalInputOperand opA
+  setBasePtr val
+  incrementIp 2
+  return ()
+
 execute (Decoder.Jmp when opCond opTo) = do
   val <- evalInputOperand opCond
   let check = getJumpTest when
@@ -184,4 +206,4 @@ run :: Program -> Result
 run p = State.evalState step (initialVmState p)
 
 runWithInput :: [Int] -> Program -> Result
-runWithInput input p = State.evalState step (setInput input . initialVmState $ p)
+runWithInput i p = State.evalState step (setInput i . initialVmState $ p)

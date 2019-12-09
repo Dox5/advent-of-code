@@ -12,6 +12,5 @@ module IntCode (
 )
 where
 
-import IntCode.Decoder
 import IntCode.Executer
 import IntCode.Program

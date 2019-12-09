@@ -94,3 +94,9 @@ spec = do
         loadAndRun
           [1106, 1, 4, 99, 104, 17, 99]
         `shouldSatisfy` outputIs []
+
+    context "change relative base and relative operand" $ do
+      it "should correctly ouput 97" $ do
+        loadAndRun
+          [109, 4, 204, 2, 99, 98, 97]
+        `shouldSatisfy` outputIs [97]
