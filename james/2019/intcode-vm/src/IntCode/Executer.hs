@@ -170,7 +170,8 @@ execute (Decoder.OneOp Decoder.Input opD) = do
 
 execute (Decoder.OneOp Decoder.ChangeBasePtr opA) = do
   val <- evalInputOperand opA
-  setBasePtr val
+  base <- getBasePtr
+  setBasePtr (base + val)
   incrementIp 2
   return ()
 
