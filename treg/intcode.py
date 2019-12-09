@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import itertools
+from collections import defaultdict
 
 class Error(Exception):
     """Base class for exceptions in this module"""
@@ -13,6 +14,10 @@ class AwaitingInput(Error):
     """Raised when Computation needs more data but it isn't there yet"""
     pass
 
+class UnexpectedMode(Error):
+    """Thrown when the mode confuses us"""
+    pass
+
 class CPU():
 
     MAX_OPERANDS = 4
@@ -20,11 +25,18 @@ class CPU():
     def getParam(self, p):
         if self.modes[p] == '0':
             return self.memory[self.memory[self.ip + (p+1)]]
-        else:
+        elif self.modes[p] == '1':
             return self.memory[self.ip + (p+1)]
+        else:
+            return self.memory[self.memory[self.ip + (p+1)] + self.relbase]
 
     def setParam(self, p, val):
-        self.memory[self.memory[self.ip + (p+1)]] = val
+        if self.modes[p] == '0':
+            self.memory[self.memory[self.ip + (p+1)]] = val
+        elif self.modes[p] == '2':
+            self.memory[self.memory[self.ip + (p+1)] + self.relbase] = val
+        else:
+            raise UnexpectedMode()
         
     def _add(self):
         in_a = self.getParam(0)
@@ -76,7 +88,11 @@ class CPU():
         else:
             self.setParam(2,0)
         self.ip += 4
-            
+
+    def _base(self):
+        self.relbase += self.getParam(0)
+        self.ip += 2
+        
     def _end(self):
         raise EndOfComputation()
     
@@ -85,10 +101,14 @@ class CPU():
         self.op    = self.ops[complexOp % 100]
         self.modes = (str(complexOp // 100))[::-1]
         self.modes = self.modes + '0' * (CPU.MAX_OPERANDS - len(self.modes))
-        
+
+    def _loadProgram(self):
+        self.memory = defaultdict(int, {pos : instruction for (pos,instruction) in enumerate(self.origMemory)})
+         
     def __init__(self, instructions, inputter=None, outputter=None):
         self.origMemory = list(instructions)
-        self.memory = list(instructions)
+        self._loadProgram()
+        
         self.ops = { 1: self._add,
                      2: self._mul,
                      3: self._inp,
@@ -97,9 +117,11 @@ class CPU():
                      6: self._jif,
                      7: self._lt,
                      8: self._eq,
+                     9: self._base,
                      99: self._end}
 
         self.ip = 0
+        self.relbase = 0
         self.getInput  = itertools.repeat(0)
         self.sendOutput = lambda x : None
         self.modes = '0' * CPU.MAX_OPERANDS
@@ -112,7 +134,7 @@ class CPU():
             self.sendOutput = outputter
 
     def reset(self):
-        self.memory = list(self.origMemory)
+        self._loadProgram()
         self.ip = 0
         self.isFinished = False
         
