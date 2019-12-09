@@ -1,0 +1,3 @@
+clear;
+day9Data = readdata('input
+output = Process(data,1,1);
