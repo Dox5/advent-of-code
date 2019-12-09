@@ -12,7 +12,7 @@ longestInstruction = 4
 data Operand = Positional Int | Immediate Int
   deriving (Show, Eq)
 
-data BinOp = Add | Mult
+data BinOp = Add | Mult | LessThan | Equal
   deriving (Show, Eq)
 
 data SingleOp = Input | Output
@@ -103,6 +103,8 @@ fullDecode (code, modes) operandValues =
     (CodePoint  2) -> decodeBinOp Mult operands
     (CodePoint  3) -> decodeOneOp Input operands
     (CodePoint  4) -> decodeOneOp Output operands
+    (CodePoint  7) -> decodeBinOp LessThan operands
+    (CodePoint  8) -> decodeBinOp Equal operands
     (CodePoint  x) -> error $ "Decode failed unknown CodePoint: " ++ show x
 
 

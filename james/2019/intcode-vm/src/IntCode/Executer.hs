@@ -90,6 +90,8 @@ setInput is vm = vm {input = is}
 getBinaryOpImpl :: Decoder.BinOp -> (Int -> Int -> Int)
 getBinaryOpImpl Decoder.Add  = (+)
 getBinaryOpImpl Decoder.Mult = (*)
+getBinaryOpImpl Decoder.LessThan = (\l r -> if l < r then 1 else 0)
+getBinaryOpImpl Decoder.Equal = (\l r -> if l == r then 1 else 0)
 
 incrementIp :: Int -> State VmState Int
 incrementIp amount = do

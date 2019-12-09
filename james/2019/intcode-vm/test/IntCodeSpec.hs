@@ -65,6 +65,18 @@ spec = do
           [104, 2, 99]
         `shouldSatisfy` outputIs [2]
 
+    context "less-than comparison" $ do
+      it "should perform less-than" $ do
+        loadAndRun
+          [1107, 10, 5, 100, 1107, 7, 13, 101, 4, 100, 4, 101, 99]
+        `shouldSatisfy` outputIs [0, 1]
+
+    context "equal-to comparison" $ do
+      it "should perform equals" $ do
+        loadAndRun
+          [1108, 9, 10, 100, 1108,  10, 10, 101, 4, 100, 4, 101, 99]
+        `shouldSatisfy` outputIs [0, 1]
+
     context "multiply two numbers" $ do
       it "should multiple two input numbers and output" $ do
         loadAndRunWithInput [9, 100]

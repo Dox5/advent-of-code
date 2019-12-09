@@ -20,7 +20,10 @@ makeErrorTest ctx input = context ((ctx ++) . showString ": ". show $ input) $ d
 
 spec :: Spec
 spec = do
-  describe "operation decoding" $ do
+  describe "no operand instructions" $ do
+    makeTest "halt instruction" Halt [99]
+
+  describe "binary operation decoding" $ do
     makeTest "add instruction"
              (Binary Add (Positional 1) (Positional 2) (Positional 3))
              [1, 1, 2, 3]
@@ -29,8 +32,15 @@ spec = do
              (Binary Mult (Positional 5) (Positional 6) (Positional 7))
              [2, 5, 6, 7]
 
-    makeTest "halt instruction" Halt [99]
+    makeTest "less than instruction"
+             (Binary LessThan (Positional 8) (Positional 9) (Positional 10))
+             [7, 8, 9, 10]
 
+    makeTest "equals instruction"
+             (Binary Equal (Positional 11) (Positional 12) (Positional 13))
+             [8, 11, 12, 13]
+
+  describe "oneop operation decoding" $ do
     makeTest "input instruction"
              (OneOp Input (Positional 50))
              [3, 50]
@@ -38,6 +48,7 @@ spec = do
     makeTest "output instruction"
              (OneOp Output (Positional 75))
              [4, 75]
+
 
   describe "invalid instructions" $ do
     makeErrorTest "unknown instruction" [67, 5, 1, 2]
