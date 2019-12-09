@@ -100,3 +100,9 @@ spec = do
         loadAndRun
           [109, 4, 204, 2, 99, 98, 97]
         `shouldSatisfy` outputIs [97]
+
+  describe "AoC examples" $ do
+    context "Self replicating" $ do
+      it "should run correctly" $ do
+          loadAndRun [109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99]
+          `shouldSatisfy` outputIs [109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99]
