@@ -18,6 +18,9 @@ data BinOp = Add | Mult | LessThan | Equal
 data SingleOp = Input | Output
   deriving (Show, Eq)
 
+data JmpWhen = Zero | NonZero
+  deriving (Show, Eq)
+
 data Instruction = Halt |
   Binary {
     binOp :: BinOp,
@@ -30,6 +33,12 @@ data Instruction = Halt |
   OneOp {
     singleOp :: SingleOp,
     operandA :: Operand
+  } |
+
+  Jmp {
+    when :: JmpWhen,
+    cond :: Operand,
+    to   :: Operand
   }
   deriving (Show, Eq)
 
@@ -77,7 +86,7 @@ splitOp op =
   in (CodePoint operation, modes)
 
 decodeBinOp :: BinOp -> [(OpMode, Int)] -> Instruction
-decodeBinOp op (a:b:dest:[]) =
+decodeBinOp op (a:b:dest:_) =
   let
     opA  = (uncurry decodeOperand) a
     opB  = (uncurry decodeOperand) b
@@ -93,6 +102,13 @@ decodeOneOp op (operand:_) = (OneOp op (dec operand))
             Output -> uncurry decodeOperand
 decodeOneOp op [] = error "Decode failed not enough operands"
 
+decodeJump :: JmpWhen -> [(OpMode, Int)] -> Instruction
+decodeJump w (c:t:_) =
+  let
+    c' = (uncurry decodeOperand) c
+    t' = (uncurry decodeOperand) t
+  in Jmp w c' t'
+
 fullDecode :: (CodePoint, [OpMode]) -> [Int] -> Instruction
 fullDecode (code, modes) operandValues = 
   let
@@ -103,6 +119,8 @@ fullDecode (code, modes) operandValues =
     (CodePoint  2) -> decodeBinOp Mult operands
     (CodePoint  3) -> decodeOneOp Input operands
     (CodePoint  4) -> decodeOneOp Output operands
+    (CodePoint  5) -> decodeJump NonZero operands
+    (CodePoint  6) -> decodeJump Zero operands
     (CodePoint  7) -> decodeBinOp LessThan operands
     (CodePoint  8) -> decodeBinOp Equal operands
     (CodePoint  x) -> error $ "Decode failed unknown CodePoint: " ++ show x

@@ -93,12 +93,23 @@ getBinaryOpImpl Decoder.Mult = (*)
 getBinaryOpImpl Decoder.LessThan = (\l r -> if l < r then 1 else 0)
 getBinaryOpImpl Decoder.Equal = (\l r -> if l == r then 1 else 0)
 
-incrementIp :: Int -> State VmState Int
+getJumpTest :: Decoder.JmpWhen -> (Int -> Bool)
+getJumpTest Decoder.NonZero = (0/=)
+getJumpTest Decoder.Zero = (0==)
+
+
+incrementIp :: Int -> State VmState ()
 incrementIp amount = do
   vm <- State.get 
   let ip' = (ip vm) + amount
   State.put vm{ip = ip'}
-  return ip'
+  return ()
+
+setIp :: Int -> State VmState ()
+setIp to = do
+  vm <- State.get 
+  State.put vm{ip = to}
+  return ()
 
 setHalt :: State VmState ()
 setHalt = do
@@ -132,6 +143,20 @@ execute (Decoder.OneOp Decoder.Input (Decoder.Positional address)) = do
   writeTo address val
   incrementIp 2
   return ()
+
+execute (Decoder.Jmp when opCond opTo) = do
+  val <- evalInputOperand opCond
+  let check = getJumpTest when
+
+  if check val then
+    do
+      target <- evalInputOperand opTo
+      setIp target
+  else
+    incrementIp 3
+
+  return ()
+  
 
 execute instruction = error $ "Illegal instruction" ++ show instruction
 

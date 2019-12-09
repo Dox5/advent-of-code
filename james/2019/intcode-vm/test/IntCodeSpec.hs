@@ -82,3 +82,15 @@ spec = do
         loadAndRunWithInput [9, 100]
           [3, 100, 3, 101, 2, 100, 101, 100, 4, 100, 99]
         `shouldSatisfy` outputIs [900]
+
+    context "jump if true" $ do
+      it "should jump past initial halt" $ do
+        loadAndRun
+          [1105, 1, 4, 99, 104, 17, 99]
+        `shouldSatisfy` outputIs [17]
+
+    context "jump if false" $ do
+      it "should not jump past initial halt" $ do
+        loadAndRun
+          [1106, 1, 4, 99, 104, 17, 99]
+        `shouldSatisfy` outputIs []

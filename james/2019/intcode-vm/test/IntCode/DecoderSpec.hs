@@ -49,6 +49,18 @@ spec = do
              (OneOp Output (Positional 75))
              [4, 75]
 
+  describe "Jump instructions" $ do
+    makeTest "jump if true, positional"
+      (Jmp NonZero (Positional 25) (Positional 100))
+      [5, 25, 100]
+
+    makeTest "jump if false, positional"
+      (Jmp Zero (Positional 26) (Positional 101))
+      [6, 26, 101]
+
+    makeTest "jump if true, immediate"
+      (Jmp NonZero (Positional 7) (Immediate 3))
+      [1005, 7, 3]
 
   describe "invalid instructions" $ do
     makeErrorTest "unknown instruction" [67, 5, 1, 2]
