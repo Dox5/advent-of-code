@@ -8,7 +8,7 @@ data Program = Program (IntMap Int)
   deriving (Show, Eq)
 
 (!) :: Program -> Int -> Int
-(!) (Program memory) idx = memory IntMap.! idx
+(!) (Program memory) idx = IntMap.findWithDefault 0 idx memory
 
 load :: [Int] -> Program
 load instructions = Program . IntMap.fromList .  zip [0 :: Int ..] $ instructions
