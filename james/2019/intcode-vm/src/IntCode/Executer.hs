@@ -6,7 +6,6 @@ import IntCode.Program
 import Control.Monad.State (State)
 import qualified Control.Monad.State as State
 
-
 -- Used to construct an output list (in order)
 type OutputS = [Int] -> [Int]
 
