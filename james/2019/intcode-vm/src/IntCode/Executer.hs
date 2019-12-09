@@ -89,6 +89,13 @@ evalInputOperand (Decoder.Relative offset) = do
   base <- getBasePtr
   readFrom (base + offset)
 
+evalDestOperand :: Decoder.Operand -> State VmState Int
+evalDestOperand (Decoder.Immediate _) = error "Destination operand cannot be immediate"
+evalDestOperand (Decoder.Positional address) = return address
+evalDestOperand (Decoder.Relative offset) = do
+  base <- getBasePtr
+  return (base + offset)
+
 initialVmState :: Program -> VmState
 initialVmState p = VmState {
     ip = 0,
@@ -136,14 +143,15 @@ execute :: Decoder.Instruction -> State VmState ()
 
 execute Decoder.Halt = setHalt
 
-execute (Decoder.Binary op opA opB (Decoder.Positional dest)) = do
+execute (Decoder.Binary op opA opB opD) = do
   valA <- evalInputOperand opA
   valB <- evalInputOperand opB
+  valD <- evalDestOperand opD
   let
     impl = getBinaryOpImpl op
     computed = impl valA valB
 
-  writeTo dest computed
+  writeTo valD computed
   incrementIp 4
   return ()
 
@@ -153,9 +161,10 @@ execute (Decoder.OneOp Decoder.Output operand) = do
   incrementIp 2
   return ()
 
-execute (Decoder.OneOp Decoder.Input (Decoder.Positional address)) = do
+execute (Decoder.OneOp Decoder.Input opD) = do
   val <- doInput
-  writeTo address val
+  valD <- evalDestOperand opD
+  writeTo valD val
   incrementIp 2
   return ()
 
@@ -178,9 +187,6 @@ execute (Decoder.Jmp when opCond opTo) = do
 
   return ()
   
-
-execute instruction = error $ "Illegal instruction" ++ show instruction
-
 fetchDecode :: State VmState Decoder.Instruction
 fetchDecode =
   do
