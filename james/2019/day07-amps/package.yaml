@@ -21,6 +21,7 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- intcode-vm >= 0.1 && < 1
 
 library:
   source-dirs: src
@@ -38,7 +39,6 @@ executables:
     - -O2
     dependencies:
     - day07-amps
-    - intcode-vm >= 0.1 && < 1
 
 tests:
   day07-amps-test:
@@ -48,5 +48,8 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wall
+    - -Werror
+    - -O2
     dependencies:
     - day07-amps
