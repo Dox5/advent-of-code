@@ -53,7 +53,7 @@ def part1(field, vectors):
     bestasteroid = max(asteroids, key=lambda k: asteroids[k])
     return (bestasteroid, asteroids[bestasteroid])
 
-def part2(field, vectors, loc):
+def part2(field, vectors, loc,numDest=200):
     destroyed = 0
     while True:
         for v in vectors:
@@ -63,20 +63,24 @@ def part2(field, vectors, loc):
                     pos = pos + v
                     if field[pos] == '#':
                         field[pos] = destroyed = destroyed + 1
-                        if destroyed == 200:
+                        if destroyed == numDest:
                             return pos
                         break
             except:
                 pass            
-                
-def main():
-    lines = [l.strip() for l in fileinput.input()]
+
+def genField(lines):
     grid = [[line[x] for line in lines] for x in range(len(lines[0]))]
 
     maxx = len(lines[0])
     maxy = len(lines)
 
     field = {coord:val for (coord,val) in [(complex(x,y),grid[x][y]) for x in range(maxx) for y in range(maxy)]}
+    return(field,maxx,maxy)
+            
+def main():
+    lines = [l.strip() for l in fileinput.input()]
+    (field,maxx,maxy) = genField(lines)
     vectors = genVectors(max(maxx,maxy))
 
     # Part 1
