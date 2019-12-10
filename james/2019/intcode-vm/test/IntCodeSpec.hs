@@ -106,3 +106,13 @@ spec = do
       it "should run correctly" $ do
           loadAndRun [109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99]
           `shouldSatisfy` outputIs [109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99]
+
+    context "Large number output" $ do
+      it "should output the number" $ do
+        loadAndRun [104,1125899906842624,99]
+        `shouldSatisfy` outputIs [1125899906842624]
+
+    context "16 digit output" $ do
+      it "should produce output" $ do
+        loadAndRun [1102,34915192,34915192,7,4,7,99,0]
+        `shouldSatisfy` outputIs [34915192 * 34915192]
