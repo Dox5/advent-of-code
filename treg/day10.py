@@ -1,77 +1,91 @@
 #!/usr/bin/python
+
 import fileinput
+import math
+import cmath
 
-def examine(grid, xy, xdyd):
-    x,y = xy
-    xd, yd = xdyd
-    found = 0
-    for dirmod in [[1,1],[-1,1],[1,-1],[-1,-1]]:
-        if xd == 0 and dirmod[0] == -1:
-            continue
-        if yd == 0 and dirmod[1] == -1:
-            continue
-        direction = tuple([a*b for a,b in zip([xd,yd],dirmod)])
-        nx,ny = x,y
+def lookaround(field,loc,vectors):
+    seen = 0
+    for v in vectors:
         try:
-            d = False
-            while not d:
-                nx,ny = tuple([a+b for a,b in zip([nx,ny],direction)])
-                if nx >= 0 and ny >= 0:
-                    if grid[nx][ny] == '#':
-                        found += 1
-                        d = True
-                else:
-                    raise()    
+            pos = loc
+            while True:
+                pos = pos + v
+                if field[pos] == '#':
+                    seen += 1
+                    break                
         except:
-            pass
-    return found
+            pass    
+    return seen
+        
+def genVectors(dim):
+    # Create vectors in top right space
+    vectors = set()
+    for x in range(dim):
+        for y in range(1,dim):
+            div = math.gcd(x,y)
+            vectors.add(complex(x/div,y/div))
 
-def part1(grid):
-    # OK, need to find every asteroid and then play prime numbered
-    # jumping games
-    maxx = len(grid)
-    maxy = len(grid[0])
+    # Sort vectors by phase descending for part 2 ease
+    vectors = sorted([v for v in vectors], key=lambda x: cmath.phase(x), reverse=True)
+            
+    # Create other vectors in 360 degrees
+    rotate = [-1,-1j,+1j]
+    rotvec = [[x*y for x in vectors] for y in rotate]            
+    for vec in rotvec:
+        vectors += vec
 
-    options = [(x,y) for x in range(maxx) for y in range(maxy) if x != 0 or y != 0]
-    print(options)
-    # Some clever sort by gradient function needed for part 2
-    
-    for (x,y) in options:
-        for m in range(2,max(maxx,maxy)):
-            nx,ny = tuple([a*b for a,b in zip((x,y),(m,m))])
+    # Nasty hack to think about - y is inverted vis a vis normal
+    spunvec = []
+    for v in vectors:
+        spunvec += [complex(v.real, -v.imag)]
+
+    return spunvec
+
+def part1(field, vectors):
+    # Now look for asteroids
+    asteroids = {}
+    for key,val in field.items():
+        if val == '#':
+            asteroids[key] = lookaround(field,key,vectors)
+
+    # Get best
+    bestasteroid = max(asteroids, key=lambda k: asteroids[k])
+    return (bestasteroid, asteroids[bestasteroid])
+
+def part2(field, vectors, loc):
+    destroyed = 0
+    while True:
+        for v in vectors:
             try:
-                options.remove((nx,ny))
+                pos = loc
+                while True:
+                    pos = pos + v
+                    if field[pos] == '#':
+                        field[pos] = destroyed = destroyed + 1
+                        if destroyed == 200:
+                            return pos
+                        break
             except:
-                pass
+                pass            
                 
-    sightings = {}
-    
-    for x in range(maxx):
-        for y in range(maxy):
-            if grid[x][y] == '#':
-                inSight = 0
-                for opt in options:
-                    inSight += examine(grid,(x,y),opt)
-                sightings[(x,y)] = inSight
-
-    bestasteroid = max(sightings, key=lambda k: sightings[k])
-    return (bestasteroid, sightings[bestasteroid])
-
-def part2(grid):
-    pass
-
 def main():
-    # INDEXED Y,X!!!
     lines = [l.strip() for l in fileinput.input()]
+    grid = [[line[x] for line in lines] for x in range(len(lines[0]))]
 
-    # Indexed X,Y!!
-    grid = [[line[x] for line in lines] for x in range(len(lines))]
+    maxx = len(lines[0])
+    maxy = len(lines)
 
-    # Loop over asteroids
-    print(part1(grid))
-    
+    field = {coord:val for (coord,val) in [(complex(x,y),grid[x][y]) for x in range(maxx) for y in range(maxy)]}
+    vectors = genVectors(max(maxx,maxy))
+
+    # Part 1
+    (ba, num) = part1(field, vectors)
+    print(ba, num)
+
+    # Part 2
+    lastasteroid = part2(field, vectors, ba)
+    print(int((lastasteroid.real * 100) + lastasteroid.imag))
+
 if __name__ == "__main__":
     main()
-
-
-    
