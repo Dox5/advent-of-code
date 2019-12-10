@@ -6,9 +6,15 @@ module IntCode (
   left,
   output,
 
+  Suspended(Halted, Output, InputRequested),
+
+  VMState,
   load,
   run,
-  runWithInput
+  runWithInput,
+  startVM,
+  resumeVM,
+  resumeVMWithInput
 )
 where
 

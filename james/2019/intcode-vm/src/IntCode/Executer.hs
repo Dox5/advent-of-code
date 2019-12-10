@@ -6,6 +6,7 @@ import IntCode.Program
 import Control.Monad.State (State)
 import qualified Control.Monad.State as State
 
+
 -- Used to construct an output list (in order)
 type OutputS = [Int] -> [Int]
 
@@ -14,9 +15,8 @@ data VMState = VMState {
   prog :: Program,
   ip :: Int,
   basePtr :: Int,
-  input :: [Int]
+  input :: Maybe Int
 }
-
 
 data Result = Result {
   -- Left most int result
@@ -27,7 +27,7 @@ data Result = Result {
 }
   deriving (Show)
 
-data Suspended = Output Int | Halted
+data Suspended = Output Int | InputRequested | Halted
   deriving (Show)
 
 -- Memory write access
@@ -46,22 +46,6 @@ readFrom address = do
     p = prog vm
     v = p ! address
   return . seq v $ v -- Ensure that memory accesses are validated at this point
-
---doOutput :: Int -> State VMState ()
---doOutput v = do
---  vm <- State.get
---  let
---    chain = outputChain vm
---    chainLink = (\l -> v:l)
---    chain' = chain . chainLink
---  State.put vm{outputChain = chain'}
-
-doInput :: State VMState Int
-doInput = do
-  vm <- State.get
-  case input vm of
-    (v:rest) -> State.put vm {input = rest} >> return v
-    []       -> error "Requsted input but had nothing to give" 
 
 getBasePtr :: State VMState Int
 getBasePtr = do
@@ -103,11 +87,19 @@ initialVMState p = VMState {
     ip = 0,
     basePtr = 0,
     prog = p,
-    input = []
+    input = Nothing
   }
 
-setInput :: [Int] -> VMState -> VMState
-setInput is vm = vm {input = is}
+setInput :: Int -> State VMState ()
+setInput v = do
+  vm <- State.get
+  State.put vm{input = (Just v)}
+
+consumeInput :: State VMState (Maybe Int)
+consumeInput = do
+  vm <- State.get
+  State.put vm {input = Nothing}
+  return . input $ vm
 
 getBinaryOpImpl :: Decoder.BinOp -> (Int -> Int -> Int)
 getBinaryOpImpl Decoder.Add  = (+)
@@ -156,11 +148,18 @@ execute (Decoder.OneOp Decoder.Output operand) = do
   return (Just $ Output val)
 
 execute (Decoder.OneOp Decoder.Input opD) = do
-  val <- doInput
-  valD <- evalDestOperand opD
-  writeTo valD val
-  incrementIp 2
-  return Nothing
+  maybeInput <- consumeInput
+  case maybeInput of
+    (Just val) -> do
+      valD <- evalDestOperand opD
+      writeTo valD val
+      incrementIp 2
+      return Nothing
+
+    -- If there is no input, suspend and wait for more input. the IP won't have
+    -- been updated so this instruction will execute again but this time the
+    -- input value will be available
+    (Nothing) -> return (Just InputRequested)
 
 execute (Decoder.OneOp Decoder.ChangeBasePtr opA) = do
   val <- evalInputOperand opA
@@ -203,26 +202,42 @@ step = do
     Nothing -> step
     (Just suspend) -> return suspend
 
-collateOutput :: ([Int] -> [Int]) -> State VMState Result
-collateOutput prevOutput = do
+simpleRun :: [Int] -> ([Int] -> [Int]) -> State VMState Result
+simpleRun inputs prevOutput = do
   suspend <- step
   case suspend of
-    (Output v) -> collateOutput (prevOutput . (v:))
+    (Output v) -> simpleRun inputs (prevOutput . (v:))
+
+    InputRequested ->
+      do
+        case inputs of
+          (i:rest) ->
+            do
+              setInput i
+              simpleRun rest (prevOutput)
+
+          _ -> error "Requested input but none left for simple run"
+
     Halted -> do
       rc <- readFrom 0
       return Result{left = rc, output = (prevOutput []) }
 
 -- Start a VM and run it until it suspends
-startVM :: [Int] -> Program -> (Suspended, VMState)
-startVM i p = State.runState step (setInput i . initialVMState $ p)
+startVM :: Program -> (Suspended, VMState)
+startVM p = State.runState step (initialVMState $ p)
 
 -- Resume a VM previously started with startVM
 resumeVM :: (Suspended, VMState) -> (Suspended, VMState)
 resumeVM ((Halted), _) = error "Cannot resume halted VM"
 resumeVM (_, state) = State.runState step state
 
+resumeVMWithInput :: Int -> (Suspended, VMState) -> (Suspended, VMState)
+resumeVMWithInput _ ((Halted), _) = error "Cannot resume halted VM"
+resumeVMWithInput i (_, state) = do
+  State.runState step state{input = (Just i)}
+
 run :: Program -> Result
-run p = State.evalState (collateOutput id)  (initialVMState p)
+run p = runWithInput [] p
 
 runWithInput :: [Int] -> Program -> Result
-runWithInput i p = State.evalState (collateOutput id) (setInput i . initialVMState $ p)
+runWithInput i p = State.evalState (simpleRun i id) (initialVMState $ p)
