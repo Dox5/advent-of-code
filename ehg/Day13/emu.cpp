@@ -227,11 +227,69 @@ private:
   int64_t m_x, m_y;
 };
 
+int64_t update_screen(std::vector<std::string> & screen, intcode_computer & machine, int64_t & bat_x, int64_t & ball_x)
+{
+  int64_t score = 0;
+  while(machine.available() > 0)
+  {
+    auto x = machine.output();
+    auto y = machine.output();
+    auto id = machine.output();
+
+    if(x == -1)
+    {
+      if(y != 0)
+      {
+        std::cerr << "Bad score sequence" << std::endl;
+        abort();
+      }
+      std::cout << "Got score " << id << std::endl; 
+      score = id;
+    }
+    else
+    {
+      if(y >= screen.size())
+      {
+        screen.resize(y+1);
+      }
+
+      auto & line = screen.at(y);
+
+      while(x >= line.size())
+      {
+        line.push_back(' ');
+      }
+      switch(id)
+      {
+        case 0: line.at(x) = ' '; break;
+        case 1: line.at(x) = '#'; break;
+        case 2: line.at(x) = '.'; break;
+        case 3: line.at(x) = '-'; bat_x = x; break;
+        case 4: line.at(x) = 'o'; ball_x = x; break;
+        default: break;
+      }
+    }
+  }
+
+  return score;
+}
+
 void draw_screen(std::vector<std::string> const & screen)
 {
   std::for_each(screen.begin(), screen.end(), [](auto line){
     std::cout << line << std::endl;
   });
+}
+auto count_blocks(std::vector<std::string> const & screen) -> std::size_t
+{
+  std::size_t blocks = 0;
+  std::for_each(screen.begin(), screen.end(), [&blocks](auto line){
+    std::for_each(line.begin(), line.end(), [&blocks](auto c){
+      if(c == '.')
+        ++blocks;
+    });
+  });
+  return blocks;
 }
 
 int main(int argc, char *argv[])
@@ -248,78 +306,47 @@ int main(int argc, char *argv[])
 
   std::vector<std::string> screen;
 
+  int64_t bat_x, ball_x;
+
   int64_t score;
 
   while(true)
   {
     try{
       machine.run();
+      break;
     }
     catch(input_required r)
     {
-
-      while(machine.available() > 0)
-      {
-        std::cout << "Updating screen " << machine.available() << std::endl;
-        auto x = machine.output();
-        auto y = machine.output();
-        auto id = machine.output();
-
-        if(x == -1)
-        {
-          if(y != 0)
-          {
-            std::cerr << "Bad score sequence" << std::endl;
-            abort();
-          }
-          score = id;
-        }
-        else
-        {
-
-          if(y >= screen.size())
-          {
-            screen.resize(y+1);
-          }
-
-          auto & line = screen.at(y);
-
-          while(x >= line.size())
-          {
-            line.push_back(' ');
-          }
-
-          switch(id)
-          {
-            case 0: line.at(x) = ' '; break;
-            case 1: line.at(x) = '#'; break;
-            case 2: line.at(x) = '.'; break;
-            case 3: line.at(x) = '-'; break;
-            case 4: line.at(x) = 'o'; break;
-            default:
-              std::cerr << "Bad character" << std::endl;
-              abort();
-          }
-        }
-      }
-
-      std::cout << "Drawing screen" << std::endl;
-      draw_screen(screen);
-      std::cout << "Score = " << score << std::endl;
-
-      auto move = getchar();
-
-      switch(move)
-      {
-        case 'a': machine.input(-1); break;
-        case 's': machine.input(0); break;
-        case 'd': machine.input(+1); break;
-        default:
-          std::cerr << "Bad input" << std::endl;
-          abort();
-      }
-
     }
+
+    std::cout << "updating screen " << machine.available() << std::endl;
+
+    score = update_screen(screen, machine, bat_x, ball_x);
+
+    auto blocks = count_blocks(screen);
+
+    std::cout << "Blocks = " << blocks << std::endl;
+    std::cout << "Score = " << score << std::endl;
+
+    draw_screen(screen);
+
+    // Keep bat under ball
+    if(bat_x < ball_x)
+      machine.input(1);
+    else if(bat_x > ball_x)
+      machine.input(-1);
+    else
+      machine.input(0);
   }
+
+  update_screen(screen, machine, bat_x, ball_x);
+
+  auto blocks = count_blocks(screen);
+
+  std::cout << "Blocks = " << blocks << std::endl;
+  std::cout << "Score = " << score << std::endl;
+
+
   return 0;
 }
