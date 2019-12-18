@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import math
 import fileinput
 import networkx
 import string
@@ -8,7 +9,7 @@ import itertools
 
 def getOpenPaths(mazemap, pos):
     neigh = [option+pos for option in [1+0j,-1+0j,0+1j,0-1j]]
-    openneigh = [p for p in neigh if mazemap[p] in string.ascii_lowercase + '.' + '@']
+    openneigh = [p for p in neigh if mazemap[p] != '#']
     return zip(openneigh, itertools.repeat(pos))
 
 def buildGraph(mazestr):
@@ -24,7 +25,7 @@ def buildGraph(mazestr):
         for x, val in enumerate(row.strip()):
             mazemap[complex(x,-y)] = val
 
-    # Now convert mazemap into various graphs
+    # Now convert mazemap into graph
     for my in range(0,-y-1,-1):
         for mx in range(x+1):
             pos = complex(mx,my)
@@ -32,14 +33,11 @@ def buildGraph(mazestr):
 
             # Construct appropriate info
             if val in string.ascii_lowercase:
-                # This is a key. Navigable
                 keys[val] = complex(mx,my)
                 maze.add_edges_from(getOpenPaths(mazemap, pos))
             elif val in string.ascii_uppercase:
-                # This is a door. Not navigable yet
-                # Save off the maze change in doors hash. Not this only works if
-                # no two doors are next to each other...
-                doors[val.lower()] = networkx.Graph(getOpenPaths(mazemap, pos))
+                doors[val.lower()] = complex(mx,my)
+                maze.add_edges_from(getOpenPaths(mazemap, pos))                
             elif val != '#':
                 # Either a space or our entrance. Navigable
                 maze.add_edges_from(getOpenPaths(mazemap, pos))
@@ -50,73 +48,88 @@ def buildGraph(mazestr):
 
     return (maze, doors, keys, start)
 
-def isVisible(maze, start, otherpos):
-    try:
-        return networkx.shortest_path(maze, start, otherpos)
-    except:
-        return None
-
-# A nasty global to track the optimal path
-bestpath = None
-padding = ""
-
-def explore(maze, doors, keys, pos, path):
-    global bestpath
-    global padding
-
-    padding += " "
-    
-    # If the current best is better than our current, bail it's no good
-    if bestpath and len(path) > len(bestpath):
-        padding = padding[:-1]
-        return
-    
-    # If there are no visible keys, then we've got them all. Path is now a contender!
-    if len(keys) == 0:
-        if not bestpath or len(bestpath) > len(path):
-            print(padding, "NEW BEST:", len(path))
-            bestpath = copy.deepcopy(path)
-        padding = padding[:-1]            
-        return
-
-    # Checks passed so far, lets look for keys!
-    visiblekeys = [k for k in keys if isVisible(maze, pos, keys[k])]    
-    for k in visiblekeys:
-        print(padding, "Trying key", k)
-        # We've chosen to go to k.
-        kpath = isVisible(maze, pos, keys[k])
-
-        # We don't want to mutate the state we currently have, so copy things into the recursive call
-        newmaze = copy.deepcopy(maze)
-        newmaze.add_edges_from(doors[k].edges())
-        newkeys = copy.deepcopy(keys)
-        newkeys.pop(k)
-        newpath = copy.deepcopy(path) + kpath[1:]
-        explore(newmaze, doors, newkeys, keys[k], newpath)            
-
-    padding = padding[:-1]
-                      
+def generateRoutes(maze,door,keys,start):
+    options = {}
+    for idx, route in enumerate(itertools.combinations(list(keys.values()) + [start], 2)):
+        print("Precalculating Route", idx, route)
         
-def solveMaze(maze, doors, keys, start):
-    path = []
-    explore(maze, doors, keys, start, path)
+        # What are all the paths between these nodes
+        paths = networkx.all_simple_paths(maze, route[0], route[1])
+        
+        # What constraints exist on each of these paths        
+        for p in paths:            
+            keysneeded = set()
+            for d in door.keys():
+                if door[d] in p:
+                    keysneeded.add(d)
 
+            # There might be multiple viable routes that use the same key
+            # Always select the smallest!
+            if (route[0],route[1]) not in options:
+                options[(route[0],route[1])] = [(keysneeded,len(p)-1)]
+                options[(route[1],route[0])] = [(keysneeded,len(p)-1)]
+            else:
+                for x, v in enumerate(options[(route[0],route[1])]):
+                    if v[0] == keysneeded and v[1] > len(p)-1:
+                        options[(route[0],route[1])][x] = (keysneeded,len(p)-1)
+                        options[(route[1],route[0])][x] = (keysneeded,len(p)-1)                        
+                        break
+                    
+    return options
+
+# Memory of future paths
+infront = {}
+def distanceAhead(options, keys, pos, mykeys):
+    # Check to see if the state we are in has already been observed
+    stringkeys = str(sorted(list(mykeys)))
+    if (pos, stringkeys) in infront:
+        return infront[pos,stringkeys]
+
+    # Which keys are left
+    keyToGo = set(keys.keys()) - mykeys
+    
+    # If there are no keys remaining, there is no distance ahead!
+    if len(keyToGo) == 0:
+        infront[(pos, stringkeys)] = 0
+        return 0
+    
+    # We've got keys to explore. Grab one and try it, record all the distances
+    # we receive. Memorise the best one and return it
+    distances = []
+    for k in keyToGo:
+        paths = options[(pos,keys[k])]
+        validpaths = [length for kn, length in paths if kn.issubset(mykeys)]
+        if validpaths:
+            nk = copy.deepcopy(mykeys)
+            nk.add(k)
+            np = keys[k]
+            distances.append(distanceAhead(options,keys,np,nk) + min(validpaths))
+        else:
+            distances.append(math.inf)
+
+    bestDistanceAhead = min(distances)
+    infront[(pos,stringkeys)] = bestDistanceAhead
+    return bestDistanceAhead
+      
 def main():
     mazestr = fileinput.input()
-    (maze, doors, keys, start) = buildGraph(mazestr)
 
-    # OK, now we know lots about the maze, we need a way of finding the next key
-    # and then adding the door navigability in, rinse and repeat.
-
-    # We can probably ask the graph for shortest path to all keys from our current
-    # position. How do we choose which is optimal though, since it's not always
-    # the closest. We could just recurse, copying the mazemap and picking different
-    # options tracking how far we've walked. If we've walked longer than curernt
-    # max, abandon that branch.
-    solveMaze(maze,doors,keys,start)
-
-    global bestpath
-    print(len(bestpath))
+    # Build complete graph
+    (maze, door, keys, start) = buildGraph(mazestr)
     
+    # We could figure out what all shortest paths are between all keys (+ start pos)
+    # We could know what constraints there are on choosing any given path (doors X, Y, Z)
+    # Then the search becomes "select viable move", try it. This might be quicker than all that
+    #  shortest calculation I was doing
+    # We could also view this as looking ahead, rather than finding the best absolute path. This
+    #  allows us to remember what happens ahead of us in a path if we find ourselves back in the same
+    #  spot - the path ahead is the same length if we start a,b as it is b,a
+    options = generateRoutes(maze,door,keys,start)
+
+    # As a helper, remember all key names
+    bda = distanceAhead(options,keys,start,set())
+    print(bda)
+        
+            
 if __name__ == "__main__":
     main()
