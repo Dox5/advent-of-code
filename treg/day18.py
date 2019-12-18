@@ -15,7 +15,7 @@ def getOpenPaths(mazemap, pos):
 def buildGraph(mazestr):
     keys = {}
     doors = {}
-    start = None
+    start = []
     maze = networkx.Graph()
 
     mazemap = collections.defaultdict(lambda: '#')
@@ -44,13 +44,13 @@ def buildGraph(mazestr):
 
                 # Remember our start position
                 if val == '@':
-                    start = pos
+                    start.append(pos)
 
     return (maze, doors, keys, start)
 
 def generateRoutes(maze,door,keys,start):
     options = {}
-    for idx, route in enumerate(itertools.combinations(list(keys.values()) + [start], 2)):
+    for idx, route in enumerate(itertools.combinations(list(keys.values()) + start, 2)):
         print("Precalculating Route", idx, route)
         
         # What are all the paths between these nodes
@@ -82,33 +82,44 @@ infront = {}
 def distanceAhead(options, keys, pos, mykeys):
     # Check to see if the state we are in has already been observed
     stringkeys = str(sorted(list(mykeys)))
-    if (pos, stringkeys) in infront:
-        return infront[pos,stringkeys]
+
+    # Super arbitrary sort is super arbitrary
+    stringpos = str(sorted(pos, key=lambda x: x.real + (x.imag*1000)))
+    if (stringpos, stringkeys) in infront:
+        return infront[stringpos,stringkeys]
 
     # Which keys are left
     keyToGo = set(keys.keys()) - mykeys
     
     # If there are no keys remaining, there is no distance ahead!
     if len(keyToGo) == 0:
-        infront[(pos, stringkeys)] = 0
+        infront[(stringpos, stringkeys)] = 0
         return 0
     
-    # We've got keys to explore. Grab one and try it, record all the distances
-    # we receive. Memorise the best one and return it
+    # We've got keys to explore and multiple places to be. Grab one and try it,
+    # record all the distances we receive. Memorise the best one and return it
     distances = []
-    for k in keyToGo:
-        paths = options[(pos,keys[k])]
-        validpaths = [length for kn, length in paths if kn.issubset(mykeys)]
-        if validpaths:
-            nk = copy.deepcopy(mykeys)
-            nk.add(k)
-            np = keys[k]
-            distances.append(distanceAhead(options,keys,np,nk) + min(validpaths))
-        else:
-            distances.append(math.inf)
+
+    # Erk we've got to choose which robot to move
+    for ridx, robo in enumerate(pos):        
+        for k in keyToGo:
+            try:
+                paths = options[(robo,keys[k])]
+            except:
+                paths = []
+                
+            validpaths = [length for kn, length in paths if kn.issubset(mykeys)]
+            if validpaths:
+                nk = copy.deepcopy(mykeys)
+                nk.add(k)
+                np = copy.deepcopy(pos)
+                np[ridx] = keys[k]
+                distances.append(distanceAhead(options,keys,np,nk) + min(validpaths))
+            else:
+                distances.append(math.inf)
 
     bestDistanceAhead = min(distances)
-    infront[(pos,stringkeys)] = bestDistanceAhead
+    infront[(stringpos,stringkeys)] = bestDistanceAhead
     return bestDistanceAhead
       
 def main():
@@ -117,16 +128,18 @@ def main():
     # Build complete graph
     (maze, door, keys, start) = buildGraph(mazestr)
     
-    # We could figure out what all shortest paths are between all keys (+ start pos)
+    # We could figure out what all shortest paths are between all keys (+ start positions)
     # We could know what constraints there are on choosing any given path (doors X, Y, Z)
-    # Then the search becomes "select viable move", try it. This might be quicker than all that
-    #  shortest calculation I was doing
+    # Then the search becomes "select viable move", try it.
+
     # We could also view this as looking ahead, rather than finding the best absolute path. This
     #  allows us to remember what happens ahead of us in a path if we find ourselves back in the same
-    #  spot - the path ahead is the same length if we start a,b as it is b,a
-    options = generateRoutes(maze,door,keys,start)
+    #  spot - the path ahead is the same length if we start a,b,c as it is b,a,c - if we're at c
+    #  (and any other robots are at their starts) the future moves are going to be the same
 
-    # As a helper, remember all key names
+    # Multi robot support comes from knowing each robot can't reach each other, so we can use the
+    #  same cache technique of looking forward but iterate over multiple possible robots moving
+    options = generateRoutes(maze,door,keys,start)
     bda = distanceAhead(options,keys,start,set())
     print(bda)
         
