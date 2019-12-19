@@ -1,0 +1,60 @@
+name:                day10-asteroids
+version:             0.1.0.0
+github:              "githubuser/day10-asteroids"
+license:             BSD3
+author:              "Author name here"
+maintainer:          "example@example.com"
+copyright:           "2019 Author name here"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/day10-asteroids#readme>
+
+dependencies:
+- array >= 0.5 && < 1
+- base >= 4.7 && < 5
+- containers >= 0.6 && < 1
+
+library:
+  source-dirs: src
+  ghc-options:
+    - -Wall
+    - -Werror
+    - -O2
+
+executables:
+  day10-asteroids-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -Wall
+    - -Werror
+    - -O2
+    dependencies:
+    - day10-asteroids
+
+tests:
+  day10-asteroids-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -Werror
+    - -Wall
+    dependencies:
+    - day10-asteroids
+    - hspec >= 2.7 && < 3
