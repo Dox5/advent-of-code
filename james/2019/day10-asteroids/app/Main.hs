@@ -21,8 +21,16 @@ getPath = do
 canSeeMost :: SpaceMap -> (Position, Int)
 canSeeMost = List.maximumBy (compare `on` snd) . countVisableAsteroids
 
+nthDestroyed :: Int -> Position -> SpaceMap -> Position
+nthDestroyed n base sm = head . drop (n-1) . destructionOrder sm $ base
+
 main :: IO ()
 main = do
   path <- getPath
   spaceMap <- readMapFile path
-  putStrLn . showString "Best view: " $ show (canSeeMost spaceMap)
+  let (base, visableCount) = canSeeMost spaceMap
+  let betOn = nthDestroyed 200 base spaceMap
+  putStrLn . showString "Best view: " . shows base
+    . shows ", can see: " . shows visableCount . show $ " asteroids"
+
+  putStrLn . showString "Bet on: " . show $ betOn

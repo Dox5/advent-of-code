@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 265be27491ea3c0643a319b7f7752203a7df84a9aacb38052165adf6e754207e
+-- hash: 2db74b9708af178f3e9287161928bdd0dbb98557e596918b2d0837ac3b133f87
 
 name:           day10-asteroids
 version:        0.1.0.0
@@ -37,6 +37,7 @@ library
       array >=0.5 && <1
     , base >=4.7 && <5
     , containers >=0.6 && <1
+    , unordered-containers >=0.2 && <1
   default-language: Haskell2010
 
 executable day10-asteroids-exe
@@ -51,6 +52,7 @@ executable day10-asteroids-exe
     , base >=4.7 && <5
     , containers >=0.6 && <1
     , day10-asteroids
+    , unordered-containers >=0.2 && <1
   default-language: Haskell2010
 
 test-suite day10-asteroids-test
@@ -67,4 +69,5 @@ test-suite day10-asteroids-test
     , containers >=0.6 && <1
     , day10-asteroids
     , hspec >=2.7 && <3
+    , unordered-containers >=0.2 && <1
   default-language: Haskell2010

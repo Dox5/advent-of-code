@@ -7,6 +7,12 @@ import Data.Array (Array)
 import qualified Data.Array as Array
 
 import qualified Data.Set as Set
+import qualified Data.List as List
+
+import Data.HashMap.Strict (HashMap)
+import qualified Data.HashMap.Strict as HashMap
+
+import Data.Function (on)
 
 type Position = (Int, Int)
 
@@ -19,6 +25,8 @@ data SpaceMap = SpaceMap {
   deriving (Show)
 
 type Vector = (Float, Float)
+type Angle = Float
+type Distance = Float
 
 ix :: [Int]
 ix = [0..]
@@ -67,17 +75,60 @@ allAsteroids (SpaceMap m) =
 
 -- Fix is a strong term. Reduce the accuracy to make vectors compare equally
 fixFloatingPointError :: Float -> Float
-fixFloatingPointError bad = (fromInteger $ (round (bad * 10000))) / 10000
+fixFloatingPointError bad = (fromInteger $ (round (bad * 1000))) / 1000
+
+vectorLength :: Vector -> Float
+vectorLength (x, y) = sqrt $ x*x + y*y 
 
 normalise :: Vector -> Vector
-normalise (x, y) = 
+normalise v@(x, y) = 
   let
-    mag = sqrt $ x*x + y*y
-    factor = 1/mag
+    factor = 1/vectorLength v
   in (fixFloatingPointError $ x*factor, fixFloatingPointError $ y *factor)
+
+dotProduct :: Vector -> Vector -> Float
+dotProduct (ax, ay) (bx, by) = ax*bx + ay*by
+
+angleBetween :: Vector -> Vector -> Float
+angleBetween a b =
+  let
+    aLen = vectorLength a
+    bLen = vectorLength b
+  in fixFloatingPointError $ acos $ (dotProduct a b) / (aLen * bLen)
+
+anglesToAsteroids :: SpaceMap -> Position -> [(Position, (Angle, Distance))]
+anglesToAsteroids sm origin =
+  let
+    north = (0.0, -1.0)
+    calcAngleDist = (\p ->
+      let
+        v@(x, _) = vector origin p
+        -- Angle is always the _smallest_ between vectors, we want clockwise from
+        -- `north` so when in the negative x-plane add pi (half circle)
+        distance = vectorLength v
+        smallestAngle = angleBetween north v
+        bearing = if x < 0 then 2*pi - smallestAngle else smallestAngle
+      in (bearing, distance))
+  in [(asteroid, calcAngleDist asteroid)
+                              | asteroid <- allAsteroids sm, asteroid /= origin]
+
+laserPasses :: [(Position, (Angle, Distance))] -> HashMap Float [(Position)]
+laserPasses = fmap (fmap fst . List.sortBy (compare `on` snd)) . List.foldl' f HashMap.empty
+  where
+    f :: HashMap Float [(Position, Distance)] -> (Position, (Angle, Distance)) -> HashMap Float [(Position, Distance)]
+    f h (p, (angle, dist)) = HashMap.alter (addToList (p, dist)) angle h
+
+    -- Note: This inverts the list!
+    addToList :: a -> Maybe [a] -> Maybe [a]
+    addToList p Nothing = Just $ p:[]
+    addToList p (Just ps) = Just $ p:ps
 
 vector :: Position -> Position -> Vector
 vector (x1, y1) (x2, y2) = (fromIntegral $ x2 - x1, fromIntegral $ y2 - y1)
+
+-- Consume each list 1 element at a time until they are all empty
+interleave :: [[a]] -> [a]
+interleave = List.concat . List.transpose
 
 countVisableAsteroids :: SpaceMap -> [(Position, Int)]
 countVisableAsteroids sm =
@@ -85,3 +136,11 @@ countVisableAsteroids sm =
     asteroids = allAsteroids sm
     sightLines = [(from, [v | to <- asteroids, from /= to, let v = normalise $ vector from to]) | from <- asteroids]
   in fmap (\(p, v) -> (p, Set.size . Set.fromList $ v)) sightLines
+
+destructionOrder :: SpaceMap -> Position -> [Position]
+destructionOrder sm laser =
+  let
+    angles = anglesToAsteroids sm laser
+    asteroidGroups = HashMap.foldrWithKey (\k v a -> (k, v):a) [] $ laserPasses angles
+    orderedGroups = fmap snd $ List.sortBy (compare `on` fst) asteroidGroups
+  in interleave orderedGroups
