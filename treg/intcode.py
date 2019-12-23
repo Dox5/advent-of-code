@@ -141,13 +141,17 @@ class CPU():
     def finished(self):
         return self.isFinished
         
-    def run(self):
+    def run(self, steps=-1):
         try:
-            while True:
+            stepped = 0
+            while steps < 0 or stepped < steps:
                 self._decodeOp()
                 self.op()
+                stepped += 1
+                
         except EndOfComputation:
             self.isFinished = True
             return
         except AwaitingInput:
             return
+        return
