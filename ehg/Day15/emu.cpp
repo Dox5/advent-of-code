@@ -281,95 +281,115 @@ int64_t direction_translate(int64_t eds_version)
   abort();
 }
 
-struct state
+void explore_from(location position, intcode_computer machine, std::map<location, char> & map)
 {
-  intcode_computer machine;
-  location position;
-  std::size_t hops;
-};
-
-void explore_from(state current, std::map<location, std::size_t> & reachable, std::size_t & best_hops_to_target, location & target, std::map<location, char> & detail)
-{
-  // We're here, so remember that
-  auto found = reachable.find(current.position);
-  if(found != reachable.end())
-  {
-    // We've been here before, but it might be a record
-    if(found->second > current.hops)
-      reachable[current.position] = current.hops;
-    return;
-  }
-
-  reachable[current.position] = current.hops;
-  detail[current.position] = '.';
-
   for(std::int64_t direction = 0; direction < 4; ++direction)
   {
-    auto machine_to_move = current.machine;
-    auto next = next_location(current.position, direction);
+    auto next = next_location(position, direction);
 
-    machine_to_move.input(direction_translate(direction));
-
-    try{machine_to_move.run();}
-    catch(input_required ir) {}
-
-    auto res = machine_to_move.output();
-
-    switch(res)
+    // Have we already been to the next location?
+    auto found = map.find(next);
+    if(found == map.end())
     {
-      case 0: // Blocked by wall, do nothing
-        detail[next] = '#';
-        break;
-      case 1: // Move worked fine, keep exploring in that direction
-        explore_from(state{machine_to_move, next, current.hops+1},
-                     reachable,
-                     best_hops_to_target,
-                     target,
-                     detail);
-        break;
-      case 2: // Found the target
-        std::cout << "Found target at " << next.first << "," << next.second << std::endl;
-        target = next;
-        detail[next] = 'O';
-        if(current.hops+1 < best_hops_to_target)
-          best_hops_to_target = current.hops+1;
-        // No need to carry on, we can't win with more hops
-        break;
+      auto machine_to_move = machine;
+      machine_to_move.input(direction_translate(direction));
+
+      try{machine_to_move.run();}
+      catch(input_required ir) {}
+
+      auto res = machine_to_move.output();
+
+      switch(res)
+      {
+        case 0: // Blocked by wall, do nothing
+          map[next] = '#';
+          break;
+        case 2: // Found the target
+          std::cout << "Found target at " << next.first << "," << next.second << std::endl;
+          map[next] = 'O';
+          explore_from(next, machine_to_move, map);
+          break;
+        case 1: // Move worked fine, keep exploring in that direction
+          map[next] = '.';
+          explore_from(next, machine_to_move, map);
+          break;
+      }
     }
   }
-
 }
 
-void oxygen_from(state current, std::map<location, std::size_t> & reachable)
+struct state
 {
-  // We're here, so remember that
-  auto found = reachable.find(current.position);
-  if(found != reachable.end() && found->second <= current.hops)
+  location position;
+  std::size_t distance;
+};
+
+auto measure_distance(std::map<location, char> const & map, location start = location{0,0}, bool animate = false) -> state
+{
+  std::map<location, char> updated = map;
+  std::set<location> explored;
+  std::list<state> q;
+
+  state current{start, 0};
+  q.push_back(current);
+
+  std::size_t distance = 0;
+
+  while(!q.empty())
   {
-    return;
-  }
+    current = q.front();
+    q.pop_front();
 
-  // First time we've been here, or a new record
-  reachable[current.position] = current.hops;
+    auto found = map.find(current.position);
 
-  for(std::int64_t direction = 0; direction < 4; ++direction)
-  {
-    intcode_computer machine_to_move = current.machine;
-    location next = next_location(current.position, direction);
-
-    machine_to_move.input(direction_translate(direction));
-
-    try{machine_to_move.run();}
-    catch(input_required ir) {}
-
-    auto res = machine_to_move.output();
-
-    if(res != 0)
+    if(found != map.end() && found->second != '#')
     {
-      oxygen_from(state{machine_to_move, next, current.hops+1}, reachable);
+      if(animate)
+      {
+        if(updated[current.position] == '.')
+          updated[current.position] = 'o';
+
+
+        if(current.distance > distance)
+        {
+          using namespace std::chrono_literals;
+          std::this_thread::sleep_for(20ms);
+          distance = current.distance;
+          std::cout << "Working from distance " << distance << std::endl;
+          draw_map(updated);
+        }
+      }
+
+      // If we're looking for the oxygenator (not starting at it), check if we're there
+      if(current.position != start && found->second == 'O')
+      {
+        std::cout << "Stopping exploration at " << current.position.first << ",";
+        std::cout << current.position.second << " after " << explored.size();
+        std::cout << " nodes because I found the oxygenator" << std::endl;
+        // We've found the machine
+        return current;
+      }
+
+      // We're in a non-wall position
+      for(std::int64_t direction = 0; direction < 4; ++direction)
+      {
+        auto next = next_location(current.position, direction);
+        if(explored.insert(next).second)
+        {
+          // We've not been to the next position before
+          q.push_back(state{next, current.distance + 1});
+        }
+      }
     }
   }
 
+  std::cout << "Completed exploration at " << current.position.first << ",";
+  std::cout << current.position.second << " after " << explored.size();
+  std::cout << " nodes because there are no more nodes to explore. Biggest distance was " << distance << std::endl;
+
+  draw_map(updated);
+
+  return state{start, distance};
 }
 
 int main(int argc, char *argv[])
@@ -384,36 +404,18 @@ int main(int argc, char *argv[])
 
   intcode_computer machine(program);
 
-  std::map<location, std::size_t> reachable;
+  std::map<location, char> map;
 
-  std::size_t best = -1;
+  explore_from(location{0,0}, machine, map);
 
-  state mystate{machine, location{0,0}, 0};
+  map[location{0,0}] = 'D';
+  draw_map(map);
 
-  location oxygen_machine;
+  auto oxygenator = measure_distance(map);
 
-  std::map<location, char> detail;
+  std::cout << oxygenator.distance << std::endl;
 
-  explore_from(mystate, reachable, best, oxygen_machine, detail);
-
-  detail[location{0,0}] = 'D';
-
-  std::cout << best << std::endl;
-  draw_map(detail);
-
-  std::map<location, std::size_t> oxygenated;
-
-  // Now need to explore from target to find time to fill with oxygen
-  state fillup{machine, oxygen_machine, 0};
-  oxygen_from(fillup, oxygenated);
-
-  std::size_t max = 0;
-  std::for_each(oxygenated.begin(), oxygenated.end(), [&max](auto o){
-    if(o.second > max)
-      max = o.second;
-  });
-
-  std::cout << max << std::endl;
+  std::cout << measure_distance(map, oxygenator.position, true).distance << std::endl;
 
   return 0;
 }
