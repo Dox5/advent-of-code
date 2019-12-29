@@ -1,0 +1,51 @@
+name:                day11-paint-by-robot
+version:             0.1.0.0
+github:              "githubuser/day11-paint-by-robot"
+license:             BSD3
+author:              "Author name here"
+maintainer:          "example@example.com"
+copyright:           "2019 Author name here"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/day11-paint-by-robot#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- intcode-vm >= 0.0 && < 1
+- unordered-containers >= 0.2 && < 1 
+- transformers >= 0.5 && < 1
+
+library:
+  source-dirs: src
+
+executables:
+  day11-paint-by-robot-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - day11-paint-by-robot
+
+tests:
+  day11-paint-by-robot-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - day11-paint-by-robot
