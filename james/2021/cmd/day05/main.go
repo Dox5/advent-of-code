@@ -1,9 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/Dox5/advent-of-code/james/2021/aoc_fetch"
 	"github.com/alecthomas/participle/v2"
-	"fmt"
 )
 
 var exampleData = `0,9 -> 5,9
@@ -16,7 +16,6 @@ var exampleData = `0,9 -> 5,9
 3,4 -> 1,4
 0,0 -> 8,8
 5,5 -> 8,2`
-
 
 type Point struct {
 	X int `@Int`
@@ -47,9 +46,9 @@ func increasing(a, b int) (int, int) {
 // return 0, no increment needed
 func stepBetween(a, b int) (int, int) {
 	if a < b {
-		return 1, b - a + 1;
+		return 1, b - a + 1
 	} else if a > b {
-		return -1, a - b + 1;
+		return -1, a - b + 1
 	} else {
 		return 0, 0
 	}
@@ -68,7 +67,7 @@ func pickStepCount(a, b int) int {
 }
 
 // For every line, write out every coordinate it touches to the channel.
-func alignedLineToPoints(vents []Line, points chan<-Point, allowDiag bool) {
+func alignedLineToPoints(vents []Line, points chan<- Point, allowDiag bool) {
 	defer close(points)
 	for _, ventLine := range vents {
 
@@ -98,7 +97,7 @@ func alignedLineToPoints(vents []Line, points chan<-Point, allowDiag bool) {
 func countByPoint(points <-chan Point) (counts map[Point]int) {
 	counts = make(map[Point]int)
 	for point := range points {
-		if c, ok := counts[point] ; ok {
+		if c, ok := counts[point]; ok {
 			counts[point] = c + 1
 		} else {
 			counts[point] = 1
@@ -138,8 +137,8 @@ func main() {
 		fmt.Println("Failed to load input,", err)
 	}
 
-	exampleVents := &HydroThermalVents{};
-	vents := &HydroThermalVents{};
+	exampleVents := &HydroThermalVents{}
+	vents := &HydroThermalVents{}
 	err = parser.ParseString("exampleData", exampleData, exampleVents)
 	if err != nil {
 		fmt.Println("Error parsing imput:", err)
