@@ -1,7 +1,5 @@
 import enum
 
-from pprint import pprint
-
 class Tile(enum.Enum):
     Path       = "."
     Forest     = "#"
@@ -97,81 +95,59 @@ def solve(g: Grid, slippery_slopes=True):
         if g[(x, g.height - 1)] == Tile.Path:
             end = (x, g.height - 1)
 
-    # Keep track of things we've seen on this path (start of segments)
-    seen = set()
-
-
-    seg_cache = {}
-
-    def expand_seg(seg):
-        if len(seg) == 1:
-            # Can try and use the cache for this
-            try:
-                return seg_cache[seg[0]]
-            except KeyError:
-                pass
-
-        in_seg = set(seg)
-
-        while True:
-            neigh = g.neighbours_of(seg[-1], slippery_slopes)
-
-            # Remove any nodes we have already seen or are part of this segment
-            nxt = list((set(neigh) - seen) - in_seg)
-
-            if len(nxt) == 1:
-                # No decision to make
-                in_seg.add(nxt[0])
-                seg.append(nxt[0])
-            else:
-                # Either at the end or need to make a decision
-                break
-
-        # Cache this for the future 
-        print(len(seg_cache))
-        seg_cache[seg[0]] = seg
-        return seg
-
     # Traversal stack, populated with our start element
-    start_seg = expand_seg([start])
-    path = [(start_seg, g.neighbours_of(start_seg[-1], slippery_slopes))]
+    path = [(start, g.neighbours_of(start, slippery_slopes))]
+
+    # Remember the longest path we've seen to this pos
+    cache = dict()
+
+    # Keep track of things we've seen on this path
+    seen = set([start])
 
     longest_path = 0
 
     while path != []:
         # This is the element we are currently working on
-        seg, _ = path[-1] 
+        pos, _ = path[-1] 
 
+        #longest_to_pos = cache.get(pos, 0)
+        #if len(path) >= longest_to_pos:
+        #    # This is a better path so worth exploring, remember for next time
+        #    print("Found longer path to", pos)
+        #    cache[pos] = len(path)
+        #else:
+        #    # We previously found a longer path to this position, so this path
+        #    # cannot be better so it can be culled
+        #    seen.discard(pos)
+        #    path.pop()
+        #    continue
 
         if path[-1][1] != []:
             # More to explore still
             # Add this node to the seen set so we don't revisit it
-            for p in seg:
-                seen.add(p)
 
             nxt = path[-1][1].pop()
 
-            if nxt not in seen:
-                # Setup for the next exploration
-                nxt_seg = expand_seg([nxt])
-                next_neigh = set(g.neighbours_of(nxt_seg[-1], slippery_slopes))
-                next_neigh -= seen
-                path.append((nxt_seg, list(next_neigh)))
+            # We're putting this into the path so we add it to seen
+            seen.add(nxt)
+
+            # Setup for the next exploration
+            neigh = set(g.neighbours_of(nxt, slippery_slopes))
+            neigh -= seen
+            neigh = list(neigh)
+            path.append((nxt, neigh))
 
         else:
-            if seg[-1] == end:
-                # Found the end!
-                this_path_len = sum(len(p[0]) for p in path)
-                longest_path = max(longest_path, this_path_len)
+            if pos == end:
+                # Found a route to the end
+                longest_path = max(longest_path, len(path))
+
+            # Can head back up now
 
             # Finished exploring here, go back up the stack
             # Need to remove this element from our seen set because we can go
             # back to it
-            for p in seg:
-                # It's possible to get here without adding these - due to going
-                # to a node and never decending from it
-                seen.discard(p)
-
+            seen.remove(pos)
             # Setup to go to the previous element
             path.pop()
 
@@ -183,9 +159,9 @@ if __name__ == "__main__":
     print("(example) longest hike:", solve(example_grid))
     print("(example) longest hike (non-slippery):", solve(example_grid, slippery_slopes=False))
 
-    with open("input.txt") as fh:
-        g = Grid([l.strip() for l in fh])
+    #with open("input.txt") as fh:
+    #    g = Grid([l.strip() for l in fh])
 
 
-    print("Longest hike:", solve(g))
-    print("Longest hike (non-slippery):", solve(g, slippery_slopes=False))
+    #print("Longest hike:", solve(g))
+    #print("Longest hike (non-slippery):", solve(g, slippery_slopes=False))
