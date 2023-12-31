@@ -72,39 +72,44 @@ class Grid:
 
         self.bounds = (range(self.width), range(self.height))
 
-    def __getitem__(self, p: Point):
+    def __getitem__(self, p: tuple[int, int]):
         """
-        >>> Grid(example_1)[Point(x=3, y=2)]
+        >>> Grid(example_1)[(3, 2)]
         '#'
         """
+        x, y = p
         if self.infinite:
-            p = p % Point(self.width, self.height)
+            x = x % self.width
+            y = y % self.height
 
-        return self.cells[p.x + p.y * self.width]
+        return self.cells[x + y * self.width]
 
-    def __setitem__(self, p: Point, v: str):
+    def __setitem__(self, p: tuple[int, int], v: Loc):
+        x, y = p
         if self.infinite:
-            p = p % Point(self.width, self.height)
+            x = x % self.width
+            y = y % self.height
 
-        self.cells[p.x + p.y * self.width] = v
+        self.cells[x + y * self.width] = v
 
 
-    def __contains__(self, p: Point) ->  bool:
+    def __contains__(self, p: tuple[int, int]) ->  bool:
         if self.infinite:
             return True
 
+        x, y = p
         x_bound, y_bound = self.bounds
-        return p.x in x_bound and p.y in y_bound
+        return x in x_bound and y in y_bound
 
-    def find_start(self) -> Point:
+    def find_start(self) -> tuple[int, int]:
         """
         >>> Grid(example_1).find_start()
-        Point(x=5, y=5)
+        (5, 5)
         """
         idx = self.cells.index(Loc.Start)
         y = int(idx/self.width)
         x = idx % self.width
-        return Point(x=x, y=y)
+        return x, y
 
 
 def dump_grid(g: Grid, overlay: dict[Point, str]):
@@ -119,10 +124,127 @@ def dump_grid(g: Grid, overlay: dict[Point, str]):
             print(c, end="")
         print()
 
+
+def steps_to_plots(g: Grid, start_points: list[tuple[int, int]], start_value=0, limit=-1) -> list[tuple[int, int], int]:
+
+    # BFS so we explore the shortest paths first. All steps are equally weighted
+    # so a simple queue will work here as every produced path must be longer
+    # or the same length as those already in the queue
+    to_explore : deque[tuple[tuple[int, int], int]] = deque([(p, start_value) for p in start_points])
+    seen = {
+        p: start_value for p in start_points
+    }
+
+    while  True:
+        try:
+            (x, y), steps = to_explore.popleft()
+        except IndexError:
+            # Done
+            break
+
+        if limit != -1 and steps > limit:
+            continue
+
+        for off_x, off_y in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+            neigh = (x + off_x, y + off_y)
+            if neigh in g and not neigh in seen and g[neigh] != Loc.Rock:
+                # This is the first time we've seen this location, remember
+                # how many steps it took to get here. This should be the
+                # shortest path
+
+                to_explore.append((neigh, steps+1))
+                seen[neigh] = steps+1
+
+    return seen.items()
+
+
 def reachable_plots(g: Grid, desired_steps: int) -> int:
     """
     >>> reachable_plots(Grid(example_1), 6)
     16
+    """
+
+    steps = steps_to_plots(g, [g.find_start()], limit=desired_steps)
+
+    want_evenness = desired_steps % 2 == 0
+
+    count = 0
+
+    for (_, v) in steps:
+        if (v % 2 == 0) == want_evenness and v <= desired_steps:
+            count += 1
+
+    return count
+
+def combine(edge_steps, edge_range):
+    x_range, y_range = edge_range
+    longest = 0
+    even_steps = 0
+    odd_steps = 0
+    # Assumption: even_steps is the same no matter the entry point
+    for x in x_range:
+        for y in y_range:
+            longest = max(longest, edge_steps[(x, y)]["longest"])
+            even_steps = edge_steps["even_steps"]
+            odd_steps = edge_steps["odd_steps"]
+
+
+    return {
+            "longest": longest,
+            "even_spaces": even_spaces,
+            "odd_steps": odd_steps,
+    }
+def make_next_level(level):
+
+    prev = None
+    for v in level:
+        if prev is not None:
+            yield v - prev
+        prev = v
+
+def do_dumb(level: list[int], forwards=True) -> int:
+    """
+    >>> do_dumb([0, 3, 6, 9, 12, 15])
+    18
+    >>> do_dumb([0, 3, 6, 9, 12, 15], forwards=False)
+    -3
+
+    >>> do_dumb([1, 3, 6, 10, 15, 21])
+    28
+    >>> do_dumb([1, 3, 6, 10, 15, 21], forwards=False)
+    0
+
+    >>> do_dumb([10, 13, 16, 21, 30, 45])
+    68
+    >>> do_dumb([10, 13, 16, 21, 30, 45], forwards=False)
+    5
+    """
+    levels = [list(make_next_level(level))]
+
+    while True:
+        if all(l == 0 for l in levels[-1]):
+            break;
+        levels.append(list(make_next_level(levels[-1])))
+
+    if forwards:
+        return level[-1] + sum(l[-1] for l in levels)
+    else:
+
+        firsts = [level[0]] + [l[0] for l in levels]
+
+        new_firsts = []
+
+        prev = 0
+        for f in reversed(firsts):
+            # Walk backwards
+            x = f - prev
+            new_firsts.append(x)
+            prev = x
+
+        return new_firsts[-1]
+
+def reachable_plots_infinite(g: Grid, target_steps):
+    """
     >>> reachable_plots(Grid(example_1, infinite=True), 6)
     16
     >>> reachable_plots(Grid(example_1, infinite=True), 10)
@@ -138,70 +260,41 @@ def reachable_plots(g: Grid, desired_steps: int) -> int:
     >>> reachable_plots(Grid(example_1, infinite=True), 5000)
     16733044
     """
-    seen = {}
 
-    # BFS so we explore the shortest paths first. All steps are equally weighted
-    # so a simple queue will work here as every produced path must be longer
-    # or the same length as those already in the queue
-    to_explore : deque[tuple[Point, int]] = deque()
+    # Generate sequence while we can still be bothered to wait for it
+    n = 0
+    seq = [reachable_plots(g, n) for n in [65, 196, 327, 458]]
+    n = 3
 
-    watermark = 0
+    while n != 202300:
+        n += 1
+        seq.append(do_dumb(seq))
 
-    start = g.find_start()
-    to_explore.append((start, 0))
-    seen[start] = 0
+        # Don't let this grow too big for speed purposes
+        if len(seq) > 200:
+            seq = seq[50:]
 
-    while  True:
-        try:
-            p, steps = to_explore.popleft()
-        except IndexError:
-            # Done
-            break
-
-        #if len(to_explore) > watermark:
-        #    print("High watermark for to_explore", len(to_explore), "seen", len(seen))
-        #    watermark = len(to_explore)
-
-        if steps >= desired_steps:
-            # Cull this walk, no further steps make sense. Equal to because
-            # we've already handled this point (which is exactly desired_steps
-            # away) so we don't need to handle any others
-            continue
-
-        for offset in [Point(x=1, y=0), Point(x=-1, y=0), Point(x=0, y=1), Point(x=0, y=-1)]:
-            neigh = p + offset
-            if all([neigh in g, not neigh in seen, g[neigh] != Loc.Rock]):
-                # This is the first time we've seen this location, remember
-                # how many steps it took to get here. This should be the
-                # shortest path
-
-                to_explore.append((neigh, steps+1))
-                seen[neigh] = steps+1
-
-    #dump_grid(g, {p: "O" for p, v in seen.items()})
+    print(seq[-1])
 
 
-    is_even = lambda i: i % 2 == 0 
+        
+        
 
-    want_evenness = is_even(desired_steps)
 
-    count = 0
 
-    for v in seen.values():
-        if (v % 2 == 0) == want_evenness and v <= desired_steps:
-            count += 1
 
-    return count
+
+
 
 
 if __name__ == "__main__":
-    doctest.testmod(verbose=True)
-    g = Grid(example_1, infinite=True)
-    cProfile.run("reachable_plots(g, 1000)")
+    #doctest.testmod(verbose=True)
+    #g = Grid(example_1, infinite=True)
+    #cProfile.run("reachable_plots(g, 1000)")
 
     with open("input.txt") as fh:
         lines = [l.strip() for l in fh]
         g = Grid(lines)
         #print("Reachable in exactly 64 steps", reachable_plots(g, 64))
-        infinite_g = Grid(lines, infinite=True)
-        #print("Reachable in exactly 26501365 steps", reachable_plots(infinite_g, 26501365))
+        ig = Grid(lines, infinite=True)
+        print("Reachable in exactly 26501365 steps", reachable_plots_infinite(ig, 26501365))
