@@ -37,6 +37,15 @@ pub mod util {
         }
     }
 
+    // TODO can support unpacking syntax instead?
+    impl TryFrom<Point> for (f64, f64) {
+        type Error = &'static str;
+
+        fn try_from(value: Point) -> Result<Self, Self::Error> {
+            Ok((value.x as f64, value.y as f64))
+        }
+    }
+
     impl Point {
         pub fn reverse(&self) -> Self {
             Point {
