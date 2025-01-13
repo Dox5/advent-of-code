@@ -1,4 +1,5 @@
 pub mod pointmap;
+pub mod vector;
 
 pub mod util {
     use std::fmt;
