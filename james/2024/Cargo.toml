@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+float_eq = "1.0.1"
 itertools = "0.13.0"
 petgraph = "0.6.5"
 rand = "0.8.5"

@@ -1,3 +1,4 @@
+use adventofcode::vector::Vector2D;
 use std::collections::HashSet;
 use std::str::FromStr;
 
@@ -7,12 +8,6 @@ const SAM: [u8; 3] = [0x53u8, 0x41u8, 0x4Du8];
 struct Grid {
     dim: usize,
     data: Vec<u8>,
-}
-
-#[derive(Eq, PartialOrd, Ord, PartialEq, Debug, Hash)]
-struct Point {
-    x: usize,
-    y: usize,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -36,8 +31,8 @@ impl FromStr for Grid {
 }
 
 impl Grid {
-    fn locate_backslash(&self) -> Vec<Point> {
-        let mut found: Vec<Point> = Vec::new();
+    fn locate_backslash(&self) -> Vec<Vector2D> {
+        let mut found: Vec<Vector2D> = Vec::new();
 
         for x in 0usize..self.dim {
             let limit = self.dim - x;
@@ -52,9 +47,9 @@ impl Grid {
 
             locate_words(&slash)
                 .into_iter()
-                .map(|offset| Point {
-                    x: x + offset,
-                    y: offset,
+                .map(|offset| Vector2D {
+                    x: (x + offset).try_into().unwrap(),
+                    y: offset.try_into().unwrap(),
                 })
                 .for_each(|p| found.push(p));
         }
@@ -73,9 +68,9 @@ impl Grid {
 
             locate_words(&slash)
                 .into_iter()
-                .map(|offset| Point {
-                    x: offset,
-                    y: y + offset,
+                .map(|offset| Vector2D {
+                    x: offset.try_into().unwrap(),
+                    y: (y + offset).try_into().unwrap(),
                 })
                 .for_each(|p| found.push(p));
         }
@@ -83,8 +78,8 @@ impl Grid {
         return found;
     }
 
-    fn locate_forwardslash(&self) -> Vec<Point> {
-        let mut found: Vec<Point> = Vec::new();
+    fn locate_forwardslash(&self) -> Vec<Vector2D> {
+        let mut found: Vec<Vector2D> = Vec::new();
 
         // 'forward slash'
         for x in 0usize..self.dim {
@@ -99,9 +94,9 @@ impl Grid {
 
             locate_words(&slash)
                 .into_iter()
-                .map(|offset| Point {
-                    x: x - offset,
-                    y: offset,
+                .map(|offset| Vector2D {
+                    x: (x - offset).try_into().unwrap(),
+                    y: offset.try_into().unwrap(),
                 })
                 .for_each(|p| found.push(p));
         }
@@ -120,9 +115,9 @@ impl Grid {
 
             locate_words(&slash)
                 .into_iter()
-                .map(|offset| Point {
-                    x: self.dim - (offset + 1),
-                    y: y + offset,
+                .map(|offset| Vector2D {
+                    x: (self.dim - (offset + 1)).try_into().unwrap(),
+                    y: (y + offset).try_into().unwrap(),
                 })
                 .for_each(|p| found.push(p));
         }
@@ -131,8 +126,8 @@ impl Grid {
     }
 
     fn count_crosses(&self) -> usize {
-        let bslash: HashSet<Point> = HashSet::from_iter(self.locate_backslash().into_iter());
-        let fslash: HashSet<Point> = HashSet::from_iter(self.locate_forwardslash().into_iter());
+        let bslash: HashSet<Vector2D> = HashSet::from_iter(self.locate_backslash().into_iter());
+        let fslash: HashSet<Vector2D> = HashSet::from_iter(self.locate_forwardslash().into_iter());
 
         return bslash.intersection(&fslash).count();
     }

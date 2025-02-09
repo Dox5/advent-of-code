@@ -9,7 +9,7 @@ struct Robot {
 
 #[derive(Debug, PartialEq, Eq)]
 enum ParseRobotError {
-    UnexpectedToken{found: String, expected: String},
+    UnexpectedToken { found: String, expected: String },
     FailedIntParse,
     UnexpectedEnd,
     TrailingTokens,
@@ -24,30 +24,52 @@ impl std::str::FromStr for Robot {
         // position first, expect a p
         let expect_p = tokens.next().ok_or(ParseRobotError::UnexpectedEnd)?;
         if expect_p != "p" {
-            return Err(ParseRobotError::UnexpectedToken{found: expect_p.to_owned(), expected: "p".to_owned()});
+            return Err(ParseRobotError::UnexpectedToken {
+                found: expect_p.to_owned(),
+                expected: "p".to_owned(),
+            });
         }
 
         // Grab the two coordinates
-        let pos_x: i64 = tokens.next().ok_or(ParseRobotError::UnexpectedEnd)?.parse().map_err(|_| ParseRobotError::FailedIntParse)?;
-        let pos_y: i64 = tokens.next().ok_or(ParseRobotError::UnexpectedEnd)?.parse().map_err(|_| ParseRobotError::FailedIntParse)?;
+        let pos_x: i64 = tokens
+            .next()
+            .ok_or(ParseRobotError::UnexpectedEnd)?
+            .parse()
+            .map_err(|_| ParseRobotError::FailedIntParse)?;
+        let pos_y: i64 = tokens
+            .next()
+            .ok_or(ParseRobotError::UnexpectedEnd)?
+            .parse()
+            .map_err(|_| ParseRobotError::FailedIntParse)?;
 
         // position first, expect a v
         let expect_v = tokens.next().ok_or(ParseRobotError::UnexpectedEnd)?;
         if expect_v != "v" {
-            return Err(ParseRobotError::UnexpectedToken{found: expect_v.to_owned(), expected: "v".to_owned()});
+            return Err(ParseRobotError::UnexpectedToken {
+                found: expect_v.to_owned(),
+                expected: "v".to_owned(),
+            });
         }
 
         // Grab the two coordinates
-        let vel_x: i64 = tokens.next().ok_or(ParseRobotError::UnexpectedEnd)?.parse().map_err(|_| ParseRobotError::FailedIntParse)?;
-        let vel_y: i64 = tokens.next().ok_or(ParseRobotError::UnexpectedEnd)?.parse().map_err(|_| ParseRobotError::FailedIntParse)?;
+        let vel_x: i64 = tokens
+            .next()
+            .ok_or(ParseRobotError::UnexpectedEnd)?
+            .parse()
+            .map_err(|_| ParseRobotError::FailedIntParse)?;
+        let vel_y: i64 = tokens
+            .next()
+            .ok_or(ParseRobotError::UnexpectedEnd)?
+            .parse()
+            .map_err(|_| ParseRobotError::FailedIntParse)?;
 
         if tokens.next().is_some() {
             return Err(ParseRobotError::TrailingTokens);
         }
 
-        Ok(Robot{
-            pos: Vector2D{x: pos_x, y: pos_y},
-            vel: Vector2D{x: vel_x, y: vel_y},
+        Ok(Robot {
+            pos: Vector2D { x: pos_x, y: pos_y },
+            vel: Vector2D { x: vel_x, y: vel_y },
         })
     }
 }
@@ -67,7 +89,7 @@ struct World {
 }
 
 impl World {
-    fn with_robots(world_size: Vector2D, robots: impl Iterator<Item=Robot>) -> World {
+    fn with_robots(world_size: Vector2D, robots: impl Iterator<Item = Robot>) -> World {
         World {
             world_size,
             population: robots.collect(),
@@ -75,46 +97,48 @@ impl World {
     }
 
     fn simulate(&mut self, time_seconds: i64) {
-        let new_pop = self.iter_population().map(|r| r.simulate(time_seconds, self.world_size)).collect();
+        let new_pop = self
+            .iter_population()
+            .map(|r| r.simulate(time_seconds, self.world_size))
+            .collect();
         self.population = new_pop;
     }
 
-    fn iter_population(&self) -> impl Iterator<Item=&Robot> {
+    fn iter_population(&self) -> impl Iterator<Item = &Robot> {
         return self.population.iter();
     }
 
     fn count_by_quadrant(&self) -> [usize; 4] {
         // World size is always odd...
-        let mid_point = (self.world_size - Vector2D{x: 1, y: 1}) / 2i64; 
-    
+        let mid_point = (self.world_size - Vector2D { x: 1, y: 1 }) / 2i64;
+
         let mut counts: [usize; 4] = [0, 0, 0, 0];
-    
+
         for r in self.iter_population() {
             if r.pos.x == mid_point.x || r.pos.y == mid_point.y {
                 // Don't include things on the midpoints
                 continue;
             }
-    
+
             let i = if r.pos.x < mid_point.x { 0 } else { 1 };
             let j = if r.pos.y < mid_point.y { 0 } else { 2 };
-    
-            counts[i+j] += 1;
+
+            counts[i + j] += 1;
         }
-    
-    
+
         return counts;
     }
 }
 
 impl std::fmt::Display for World {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let locations: HashSet<Vector2D> = self.population.iter().map(|r|r.pos).collect();
+        let locations: HashSet<Vector2D> = self.population.iter().map(|r| r.pos).collect();
 
         for y in 0..self.world_size.y {
             for x in 0..self.world_size.x {
-                let p = Vector2D{x, y};
+                let p = Vector2D { x, y };
                 if locations.contains(&p) {
-                    write!(f, "#")?; 
+                    write!(f, "#")?;
                 } else {
                     write!(f, ".")?;
                 }
@@ -126,8 +150,7 @@ impl std::fmt::Display for World {
     }
 }
 
-
-fn show_robots<'a>(robots: impl Iterator<Item=&'a Robot>, world_size: Vector2D) {
+fn show_robots<'a>(robots: impl Iterator<Item = &'a Robot>, world_size: Vector2D) {
     let mut locations: HashMap<Vector2D, i64> = HashMap::new();
 
     for r in robots {
@@ -136,7 +159,7 @@ fn show_robots<'a>(robots: impl Iterator<Item=&'a Robot>, world_size: Vector2D) 
 
     for y in 0..world_size.y {
         for x in 0..world_size.x {
-            let pos = Vector2D{x, y};
+            let pos = Vector2D { x, y };
 
             match locations.get(&pos) {
                 Some(&count) => {
@@ -145,7 +168,7 @@ fn show_robots<'a>(robots: impl Iterator<Item=&'a Robot>, world_size: Vector2D) 
                     } else {
                         print!("{}", count);
                     }
-                },
+                }
                 None => {
                     print!(".");
                 }
@@ -153,15 +176,17 @@ fn show_robots<'a>(robots: impl Iterator<Item=&'a Robot>, world_size: Vector2D) 
         }
         println!();
     }
-
 }
 
 fn part1() {
     let input = std::fs::read_to_string("inputs/day14.txt").expect("failed to load input file");
 
     let mut world = World::with_robots(
-        Vector2D{x: 101, y: 103},
-        input.split('\n').filter(|s| !s.is_empty()).map(|s| s.parse().unwrap()),
+        Vector2D { x: 101, y: 103 },
+        input
+            .split('\n')
+            .filter(|s| !s.is_empty())
+            .map(|s| s.parse().unwrap()),
     );
 
     world.simulate(100);
@@ -175,8 +200,11 @@ fn part2() {
     let input = std::fs::read_to_string("inputs/day14.txt").expect("failed to load input file");
 
     let mut world = World::with_robots(
-        Vector2D{x: 101, y: 103},
-        input.split('\n').filter(|s| !s.is_empty()).map(|s| s.parse().unwrap()),
+        Vector2D { x: 101, y: 103 },
+        input
+            .split('\n')
+            .filter(|s| !s.is_empty())
+            .map(|s| s.parse().unwrap()),
     );
 
     // .. try to find the tree
@@ -218,9 +246,10 @@ mod day14_tests {
         };
 
         let robot = Robot {
-            pos: Vector2D { x: 1, y: 0},
-            vel: Vector2D { x: 1, y: 2},
-        }.simulate(2, Vector2D{x: 3, y: 3});
+            pos: Vector2D { x: 1, y: 0 },
+            vel: Vector2D { x: 1, y: 2 },
+        }
+        .simulate(2, Vector2D { x: 3, y: 3 });
 
         assert_eq!(expected_robot, robot);
     }
@@ -242,7 +271,13 @@ mod day14_tests {
         p=9,5 v=-3,-3\n\
         ";
 
-        let mut world = World::with_robots(Vector2D{x: 11, y: 7}, input.split('\n').filter(|s| !s.is_empty()).map(|s| s.parse().unwrap()));
+        let mut world = World::with_robots(
+            Vector2D { x: 11, y: 7 },
+            input
+                .split('\n')
+                .filter(|s| !s.is_empty())
+                .map(|s| s.parse().unwrap()),
+        );
         world.simulate(100);
 
         show_robots(world.iter_population(), world.world_size);

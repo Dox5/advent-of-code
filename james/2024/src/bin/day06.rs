@@ -1,52 +1,42 @@
 use std::collections::{HashMap, HashSet};
-use std::ops::Add;
 
-#[derive(PartialEq, Debug, Hash, Eq, Clone, Copy)]
-struct Point {
-    x: i32,
-    y: i32,
-}
+use adventofcode::vector::Vector2D;
 
-type Vector = Point;
-
-impl Add for Point {
-    type Output = Self;
-
-    fn add(self, rhs: Vector) -> Self::Output {
-        Point {
-            x: self.x + rhs.x,
-            y: self.y + rhs.y,
-        }
-    }
-}
-
-fn parse_obsticals(input: &str) -> HashSet<Point> {
+fn parse_obsticals(input: &str) -> HashSet<Vector2D> {
     input
         .split('\n')
-        .zip(0i32..)
+        .zip(0i64..)
         .map(|(line, y)| {
-            line.chars()
-                .zip(0i32..)
-                .filter_map(move |(c, x)| if c == '#' { Some(Point { x, y }) } else { None })
+            line.chars().zip(0i64..).filter_map(move |(c, x)| {
+                if c == '#' {
+                    Some(Vector2D { x, y })
+                } else {
+                    None
+                }
+            })
         })
         .flatten()
         .collect()
 }
 
-fn find_guard(input: &str) -> Point {
+fn find_guard(input: &str) -> Vector2D {
     input
         .split('\n')
-        .zip(0i32..)
+        .zip(0i64..)
         .find_map(|(line, y)| {
-            line.chars()
-                .zip(0i32..)
-                .find_map(|(c, x)| if c == '^' { Some(Point { x, y }) } else { None })
+            line.chars().zip(0i64..).find_map(|(c, x)| {
+                if c == '^' {
+                    Some(Vector2D { x, y })
+                } else {
+                    None
+                }
+            })
         })
         .expect("no guard (^) found")
 }
 
-fn get_world_extend(input: &str) -> Point {
-    Point {
+fn get_world_extend(input: &str) -> Vector2D {
+    Vector2D {
         x: input
             .split('\n')
             .find_map(|l| Some(l.len()))
@@ -62,29 +52,29 @@ fn get_world_extend(input: &str) -> Point {
     }
 }
 
-fn in_bounds(world_extent: Point, pos: Point) -> bool {
+fn in_bounds(world_extent: Vector2D, pos: Vector2D) -> bool {
     pos.x >= 0 && pos.y >= 0 && pos.x < world_extent.x && pos.y < world_extent.y
 }
 
-fn turn_right_90(vel: Vector) -> Vector {
+fn turn_right_90(vel: Vector2D) -> Vector2D {
     match vel {
-        Point { x: 1, y: 0 } => Point { x: 0, y: 1 },
-        Point { x: 0, y: 1 } => Point { x: -1, y: 0 },
-        Point { x: -1, y: 0 } => Point { x: 0, y: -1 },
-        Point { x: 0, y: -1 } => Point { x: 1, y: 0 },
+        Vector2D { x: 1, y: 0 } => Vector2D { x: 0, y: 1 },
+        Vector2D { x: 0, y: 1 } => Vector2D { x: -1, y: 0 },
+        Vector2D { x: -1, y: 0 } => Vector2D { x: 0, y: -1 },
+        Vector2D { x: 0, y: -1 } => Vector2D { x: 1, y: 0 },
         _ => panic!("Not an expected velocity vector: {:?}", vel),
     }
 }
 
 fn find_guard_path(
-    world_extent: Point,
-    obsticals: &HashSet<Point>,
-    guard: Point,
-) -> HashSet<(Point, Vector)> {
+    world_extent: Vector2D,
+    obsticals: &HashSet<Vector2D>,
+    guard: Vector2D,
+) -> HashSet<(Vector2D, Vector2D)> {
     let mut pos = guard.clone();
-    let mut velocity = Point { x: 0, y: -1 };
+    let mut velocity = Vector2D { x: 0, y: -1 };
 
-    let mut visited = HashSet::<(Point, Vector)>::new();
+    let mut visited = HashSet::<(Vector2D, Vector2D)>::new();
 
     loop {
         // Visited current position
@@ -106,10 +96,10 @@ fn find_guard_path(
 }
 
 fn find_guard_visited(
-    world_extent: Point,
-    obsticals: &HashSet<Point>,
-    guard: Point,
-) -> HashSet<Point> {
+    world_extent: Vector2D,
+    obsticals: &HashSet<Vector2D>,
+    guard: Vector2D,
+) -> HashSet<Vector2D> {
     HashSet::from_iter(
         find_guard_path(world_extent, &obsticals, guard)
             .iter()
@@ -119,16 +109,16 @@ fn find_guard_visited(
 }
 
 fn blocks_that_create_loops(
-    world_extent: Point,
-    obsticals: &HashSet<Point>,
-    guard: Point,
-) -> HashSet<Point> {
-    let mut visited = HashSet::<(Point, Vector)>::new();
+    world_extent: Vector2D,
+    obsticals: &HashSet<Vector2D>,
+    guard: Vector2D,
+) -> HashSet<Vector2D> {
+    let mut visited = HashSet::<(Vector2D, Vector2D)>::new();
     let mut pos = guard.clone();
-    let mut velocity = Point { x: 0, y: -1 };
+    let mut velocity = Vector2D { x: 0, y: -1 };
 
-    let mut stepped_on = HashSet::<Point>::new();
-    let mut looping_obstical = HashSet::<Point>::new();
+    let mut stepped_on = HashSet::<Vector2D>::new();
+    let mut looping_obstical = HashSet::<Vector2D>::new();
 
     loop {
         // Visited current position
@@ -146,7 +136,7 @@ fn blocks_that_create_loops(
             // Pretend there is an obstical here, turn and see if we get to a
             // loop
             //let mut l_visited = visited.clone();
-            let mut l_visited = HashSet::<(Point, Vector)>::new();
+            let mut l_visited = HashSet::<(Vector2D, Vector2D)>::new();
             let mut l_pos = pos;
             let mut l_velocity = velocity;
 
@@ -186,20 +176,20 @@ fn blocks_that_create_loops(
 }
 
 fn debug_draw(
-    world_extent: Point,
-    obsticals: &HashSet<Point>,
-    guard: Point,
-    obstical: Point,
-    l_visited: &HashSet<(Point, Vector)>,
+    world_extent: Vector2D,
+    obsticals: &HashSet<Vector2D>,
+    guard: Vector2D,
+    obstical: Vector2D,
+    l_visited: &HashSet<(Vector2D, Vector2D)>,
 ) {
     let mut updated = obsticals.clone();
     updated.insert(obstical);
 
-    let broken: HashSet<Point> = HashSet::from_iter(l_visited.iter().map(|(a, _)| a).copied());
+    let broken: HashSet<Vector2D> = HashSet::from_iter(l_visited.iter().map(|(a, _)| a).copied());
 
-    let mut visited = HashMap::<Point, HashSet<Vector>>::new();
+    let mut visited = HashMap::<Vector2D, HashSet<Vector2D>>::new();
     let mut pos = guard.clone();
-    let mut velocity = Point { x: 0, y: -1 };
+    let mut velocity = Vector2D { x: 0, y: -1 };
 
     let mut no_loop = false;
 
@@ -230,7 +220,7 @@ fn debug_draw(
 
     for y in 0..world_extent.y {
         for x in 0..world_extent.x {
-            let p = Point { x, y };
+            let p = Vector2D { x, y };
             if p == obstical {
                 print!("@");
             } else if p == pos {
@@ -241,10 +231,10 @@ fn debug_draw(
             } else if obsticals.contains(&p) {
                 print!("#");
             } else if let Some(vel) = visited.get(&p) {
-                let h =
-                    vel.contains(&Vector { x: 1, y: 0 }) || vel.contains(&Vector { x: -1, y: 0 });
-                let v =
-                    vel.contains(&Vector { x: 0, y: 1 }) || vel.contains(&Vector { x: 0, y: -1 });
+                let h = vel.contains(&Vector2D { x: 1, y: 0 })
+                    || vel.contains(&Vector2D { x: -1, y: 0 });
+                let v = vel.contains(&Vector2D { x: 0, y: 1 })
+                    || vel.contains(&Vector2D { x: 0, y: -1 });
                 if h && v {
                     print!("+");
                 } else if h {
@@ -312,9 +302,9 @@ mod day06_tests {
         );
 
         let expected = HashSet::from_iter(vec![
-            Point { x: 0, y: 0 },
-            Point { x: 1, y: 1 },
-            Point { x: 2, y: 2 },
+            Vector2D { x: 0, y: 0 },
+            Vector2D { x: 1, y: 1 },
+            Vector2D { x: 2, y: 2 },
         ]);
 
         assert_eq!(expected, locations);
@@ -330,7 +320,7 @@ mod day06_tests {
         ",
         );
 
-        assert_eq!(Point { x: 2, y: 1 }, guard_at);
+        assert_eq!(Vector2D { x: 2, y: 1 }, guard_at);
     }
 
     #[rstest]
@@ -344,7 +334,7 @@ mod day06_tests {
         ",
         );
 
-        assert_eq!(Point { x: 3, y: 4 }, world_extent);
+        assert_eq!(Vector2D { x: 3, y: 4 }, world_extent);
     }
 
     #[rstest]

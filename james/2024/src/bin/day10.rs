@@ -3,25 +3,25 @@ use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use petgraph::Direction;
 
-use adventofcode::util::Point;
+use adventofcode::vector::Vector2D;
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io;
 use std::io::BufRead;
 
-type TopogPoint = (Point, i32);
+type TopogPoint = (Vector2D, i32);
 
 type TopographicMap = DiGraph<TopogPoint, i32>;
 
 fn load_topography(input: impl io::Read) -> TopographicMap {
     let mut topography: TopographicMap = DiGraph::default();
 
-    let mut nodes = HashMap::<Point, NodeIndex>::new();
+    let mut nodes = HashMap::<Vector2D, NodeIndex>::new();
 
     for (maybe_line, y) in io::BufReader::new(input).lines().zip(0i64..) {
         let line = maybe_line.expect("Failed to read line");
         for (c, x) in line.chars().zip(0i64..) {
-            let loc = Point { x, y };
+            let loc = Vector2D { x, y };
             if c == '.' {
                 // Unpassable, just skip entirely
                 continue;
@@ -34,7 +34,7 @@ fn load_topography(input: impl io::Read) -> TopographicMap {
             nodes.insert(loc, node_index);
 
             // Add edges for up and left
-            for neighbour in &[Point { x, y: y - 1 }, Point { x: x - 1, y }] {
+            for neighbour in &[Vector2D { x, y: y - 1 }, Vector2D { x: x - 1, y }] {
                 if let Some(&neigh_index) = nodes.get(neighbour) {
                     let &(_, neighbour_height) = topography
                         .node_weight(neigh_index)
@@ -106,7 +106,7 @@ fn debug_print_graph<E>(graph: &DiGraph<TopogPoint, E>) {
 
     for y in 0..height {
         for x in 0..width {
-            match elevation.get(&Point { x, y }) {
+            match elevation.get(&Vector2D { x, y }) {
                 Some(e) => {
                     print!("{}", e);
                 }

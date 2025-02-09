@@ -1,11 +1,12 @@
-use adventofcode::util::{get_world_extent, Point};
+use adventofcode::util::get_world_extent;
+use adventofcode::vector::Vector2D;
 use std::collections::HashSet;
 use std::io;
 
 #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug)]
 struct Antenna {
     freq: char,
-    loc: Point,
+    loc: Vector2D,
 }
 
 fn parse_antenna_locations<R>(input: R) -> Vec<Antenna>
@@ -23,7 +24,7 @@ where
                     if f != '.' {
                         Some(Antenna {
                             freq: f,
-                            loc: Point { x, y },
+                            loc: Vector2D { x, y },
                         })
                     } else {
                         None
@@ -38,7 +39,7 @@ where
     return antennas;
 }
 
-fn antinodes(antennas: &Vec<Antenna>, world_extent: Point) -> Vec<Antenna> {
+fn antinodes(antennas: &Vec<Antenna>, world_extent: Vector2D) -> Vec<Antenna> {
     // antenna must be sorted by 'freq' already
     let mut antinodes = Vec::<Antenna>::new();
 
@@ -52,15 +53,15 @@ fn antinodes(antennas: &Vec<Antenna>, world_extent: Point) -> Vec<Antenna> {
                 let vector = ant.loc - a.loc;
 
                 let anti_a = ant.loc + vector;
-                if anti_a.within(Point { x: 0, y: 0 }, world_extent) {
+                if anti_a.within(Vector2D { x: 0, y: 0 }, world_extent) {
                     antinodes.push(Antenna {
                         freq: a.freq,
                         loc: anti_a,
                     });
                 }
 
-                let anti_b = a.loc + vector.reverse();
-                if anti_b.within(Point { x: 0, y: 0 }, world_extent) {
+                let anti_b = a.loc - vector;
+                if anti_b.within(Vector2D { x: 0, y: 0 }, world_extent) {
                     antinodes.push(Antenna {
                         freq: a.freq,
                         loc: anti_b,
@@ -72,7 +73,7 @@ fn antinodes(antennas: &Vec<Antenna>, world_extent: Point) -> Vec<Antenna> {
     return antinodes;
 }
 
-fn antinodes_harmonics(antennas: &Vec<Antenna>, world_extent: Point) -> Vec<Antenna> {
+fn antinodes_harmonics(antennas: &Vec<Antenna>, world_extent: Vector2D) -> Vec<Antenna> {
     // antenna must be sorted by 'freq' already
     let mut antinodes = Vec::<Antenna>::new();
 
@@ -86,7 +87,7 @@ fn antinodes_harmonics(antennas: &Vec<Antenna>, world_extent: Point) -> Vec<Ante
                 let vector = ant.loc - a.loc;
 
                 let mut anti_a = ant.loc;
-                while anti_a.within(Point { x: 0, y: 0 }, world_extent) {
+                while anti_a.within(Vector2D { x: 0, y: 0 }, world_extent) {
                     antinodes.push(Antenna {
                         freq: a.freq,
                         loc: anti_a,
@@ -95,12 +96,12 @@ fn antinodes_harmonics(antennas: &Vec<Antenna>, world_extent: Point) -> Vec<Ante
                 }
 
                 let mut anti_b = a.loc;
-                while anti_b.within(Point { x: 0, y: 0 }, world_extent) {
+                while anti_b.within(Vector2D { x: 0, y: 0 }, world_extent) {
                     antinodes.push(Antenna {
                         freq: a.freq,
                         loc: anti_b,
                     });
-                    anti_b = anti_b + vector.reverse();
+                    anti_b = anti_b - vector;
                 }
             });
     }
@@ -116,13 +117,13 @@ fn main() {
         std::fs::File::open("inputs/day08.txt").expect("failed to read input"),
     ));
 
-    let unique: HashSet<Point> = antinodes(&antennas, world_extent)
+    let unique: HashSet<Vector2D> = antinodes(&antennas, world_extent)
         .into_iter()
         .map(|a| a.loc)
         .collect();
     println!("Part1, unique_antinodes: {}", unique.len());
 
-    let unique_harmonics: HashSet<Point> = antinodes_harmonics(&antennas, world_extent)
+    let unique_harmonics: HashSet<Vector2D> = antinodes_harmonics(&antennas, world_extent)
         .into_iter()
         .map(|a| a.loc)
         .collect();
@@ -155,7 +156,7 @@ mod day08_tests {
     fn antenna(freq: char, x: i64, y: i64) -> Antenna {
         return Antenna {
             freq,
-            loc: Point { x, y },
+            loc: Vector2D { x, y },
         };
     }
 
@@ -164,7 +165,7 @@ mod day08_tests {
         let expected = vec![antenna('a', 3, 1), antenna('a', 6, 7)];
         let input = vec![antenna('a', 4, 3), antenna('a', 5, 5)];
 
-        assert_eq!(expected, antinodes(&input, Point { x: 8, y: 8 }));
+        assert_eq!(expected, antinodes(&input, Vector2D { x: 8, y: 8 }));
     }
 
     #[rstest]
@@ -175,7 +176,7 @@ mod day08_tests {
 
         println!("world extend {world_extent}");
 
-        let unique: HashSet<Point> = antinodes(&antennas, world_extent)
+        let unique: HashSet<Vector2D> = antinodes(&antennas, world_extent)
             .into_iter()
             .map(|a| a.loc)
             .collect();
@@ -191,7 +192,7 @@ mod day08_tests {
 
         println!("world extend {world_extent}");
 
-        let unique: HashSet<Point> = antinodes_harmonics(&antennas, world_extent)
+        let unique: HashSet<Vector2D> = antinodes_harmonics(&antennas, world_extent)
             .into_iter()
             .map(|a| a.loc)
             .collect();

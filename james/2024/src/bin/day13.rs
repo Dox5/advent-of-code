@@ -1,10 +1,10 @@
-use adventofcode::util::Point;
+use adventofcode::vector::Vector2D;
 
 #[derive(Debug, PartialEq, Eq)]
 struct ClawMachine {
-    prize: Point,
-    a_button: Point,
-    b_button: Point,
+    prize: Vector2D,
+    a_button: Vector2D,
+    b_button: Vector2D,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -35,7 +35,7 @@ fn parse_prefixed<'a, I: std::str::FromStr>(
     }
 }
 
-fn button_line(label: &str, s: &str) -> Result<Point, ParseClawMachineError> {
+fn button_line(label: &str, s: &str) -> Result<Vector2D, ParseClawMachineError> {
     let mut parts = s.split_whitespace();
 
     if !expect_token(&mut parts, "Button") {
@@ -46,20 +46,20 @@ fn button_line(label: &str, s: &str) -> Result<Point, ParseClawMachineError> {
         return Err(ParseClawMachineError {});
     }
 
-    Ok(Point {
+    Ok(Vector2D {
         x: parse_prefixed(&mut parts, "X+")?,
         y: parse_prefixed(&mut parts, "Y+")?,
     })
 }
 
-fn prize_line(s: &str) -> Result<Point, ParseClawMachineError> {
+fn prize_line(s: &str) -> Result<Vector2D, ParseClawMachineError> {
     let mut parts = s.split_whitespace();
 
     if !expect_token(&mut parts, "Prize:") {
         return Err(ParseClawMachineError {});
     }
 
-    Ok(Point {
+    Ok(Vector2D {
         x: parse_prefixed(&mut parts, "X=")?,
         y: parse_prefixed(&mut parts, "Y=")?,
     })
@@ -144,7 +144,7 @@ impl ClawMachine {
         ClawMachine {
             a_button: self.a_button,
             b_button: self.b_button,
-            prize: Point {
+            prize: Vector2D {
                 x: self.prize.x + OFFSET,
                 y: self.prize.y + OFFSET,
             },
@@ -191,9 +191,9 @@ mod day13_tests {
         ";
 
         let expected = ClawMachine {
-            prize: Point { x: 12, y: 11 },
-            a_button: Point { x: 16, y: 17 },
-            b_button: Point { x: 19, y: 20 },
+            prize: Vector2D { x: 12, y: 11 },
+            a_button: Vector2D { x: 16, y: 17 },
+            b_button: Vector2D { x: 19, y: 20 },
         };
 
         assert_eq!(
@@ -207,9 +207,9 @@ mod day13_tests {
     #[rstest]
     fn test_part_1_example_1() {
         let machine = ClawMachine {
-            prize: Point { x: 8400, y: 5400 },
-            a_button: Point { x: 94, y: 34 },
-            b_button: Point { x: 22, y: 67 },
+            prize: Vector2D { x: 8400, y: 5400 },
+            a_button: Vector2D { x: 94, y: 34 },
+            b_button: Vector2D { x: 22, y: 67 },
         };
 
         assert_eq!(Some(40), machine.b_presses_required());
@@ -220,9 +220,9 @@ mod day13_tests {
     #[rstest]
     fn test_part_1_example_2() {
         let machine = ClawMachine {
-            prize: Point { x: 12748, y: 12176 },
-            a_button: Point { x: 26, y: 66 },
-            b_button: Point { x: 67, y: 21 },
+            prize: Vector2D { x: 12748, y: 12176 },
+            a_button: Vector2D { x: 26, y: 66 },
+            b_button: Vector2D { x: 67, y: 21 },
         };
 
         assert_eq!(None, machine.b_presses_required());
@@ -233,9 +233,9 @@ mod day13_tests {
     #[rstest]
     fn test_part_1_example_3() {
         let machine = ClawMachine {
-            prize: Point { x: 7870, y: 6450 },
-            a_button: Point { x: 17, y: 86 },
-            b_button: Point { x: 84, y: 37 },
+            prize: Vector2D { x: 7870, y: 6450 },
+            a_button: Vector2D { x: 17, y: 86 },
+            b_button: Vector2D { x: 84, y: 37 },
         };
 
         assert_eq!(Some(86), machine.b_presses_required());
@@ -246,9 +246,9 @@ mod day13_tests {
     #[rstest]
     fn test_part_1_example_4() {
         let machine = ClawMachine {
-            prize: Point { x: 18641, y: 10279 },
-            a_button: Point { x: 69, y: 23 },
-            b_button: Point { x: 27, y: 71 },
+            prize: Vector2D { x: 18641, y: 10279 },
+            a_button: Vector2D { x: 69, y: 23 },
+            b_button: Vector2D { x: 27, y: 71 },
         };
 
         assert_eq!(None, machine.b_presses_required());
@@ -259,9 +259,9 @@ mod day13_tests {
     #[rstest]
     fn test_part_2_example_1() {
         let machine = ClawMachine {
-            prize: Point { x: 8400, y: 5400 },
-            a_button: Point { x: 94, y: 34 },
-            b_button: Point { x: 22, y: 67 },
+            prize: Vector2D { x: 8400, y: 5400 },
+            a_button: Vector2D { x: 94, y: 34 },
+            b_button: Vector2D { x: 22, y: 67 },
         }
         .fix_prize_location();
 
@@ -273,9 +273,9 @@ mod day13_tests {
     #[rstest]
     fn test_part_2_example_2() {
         let machine = ClawMachine {
-            prize: Point { x: 12748, y: 12176 },
-            a_button: Point { x: 26, y: 66 },
-            b_button: Point { x: 67, y: 21 },
+            prize: Vector2D { x: 12748, y: 12176 },
+            a_button: Vector2D { x: 26, y: 66 },
+            b_button: Vector2D { x: 67, y: 21 },
         }
         .fix_prize_location();
 
@@ -290,9 +290,9 @@ mod day13_tests {
     #[rstest]
     fn test_part_2_example_3() {
         let machine = ClawMachine {
-            prize: Point { x: 7870, y: 6450 },
-            a_button: Point { x: 17, y: 86 },
-            b_button: Point { x: 84, y: 37 },
+            prize: Vector2D { x: 7870, y: 6450 },
+            a_button: Vector2D { x: 17, y: 86 },
+            b_button: Vector2D { x: 84, y: 37 },
         }
         .fix_prize_location();
 
@@ -304,9 +304,9 @@ mod day13_tests {
     #[rstest]
     fn test_part_2_example_4() {
         let machine = ClawMachine {
-            prize: Point { x: 18641, y: 10279 },
-            a_button: Point { x: 69, y: 23 },
-            b_button: Point { x: 27, y: 71 },
+            prize: Vector2D { x: 18641, y: 10279 },
+            a_button: Vector2D { x: 69, y: 23 },
+            b_button: Vector2D { x: 27, y: 71 },
         }
         .fix_prize_location();
 

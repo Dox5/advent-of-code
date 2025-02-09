@@ -2,15 +2,15 @@ use std::collections::{HashSet, VecDeque};
 use std::fs::File;
 use std::ops::Add;
 
-use adventofcode::pointmap;
-use adventofcode::{pointmap::PointMap, util::Point};
+use adventofcode::pointmap::{from_letter_grid, PointMap};
+use adventofcode::vector::Vector2D;
 
 type PlotMap = PointMap<char>;
 
 #[derive(Eq, PartialEq, Debug)]
 struct Region {
     legend: char,
-    plots: HashSet<Point>,
+    plots: HashSet<Vector2D>,
 }
 
 impl Region {
@@ -26,12 +26,12 @@ impl Region {
 
             // take away two for each of up and left if they are part of this plot
             // doing so will account for both tiles adding perimeter for this tile
-            let up = plot.add(Point { x: 0, y: -1 });
+            let up = plot.add(Vector2D { x: 0, y: -1 });
             if self.plots.contains(&up) {
                 perimeter -= 2;
             }
 
-            let left = plot.add(Point { x: -1, y: 0 });
+            let left = plot.add(Vector2D { x: -1, y: 0 });
             if self.plots.contains(&left) {
                 perimeter -= 2;
             }
@@ -77,10 +77,10 @@ impl Region {
 }
 
 // Given loc within a region, expand out the region to contain all plots
-fn explore_region(map: &PlotMap, loc: Point) -> Region {
-    let mut plots: HashSet<Point> = HashSet::new();
+fn explore_region(map: &PlotMap, loc: Vector2D) -> Region {
+    let mut plots: HashSet<Vector2D> = HashSet::new();
 
-    let mut to_explore: VecDeque<Point> = VecDeque::from([loc]);
+    let mut to_explore: VecDeque<Vector2D> = VecDeque::from([loc]);
     let plot_kind = map[&loc];
 
     while let Some(p) = to_explore.pop_front() {
@@ -120,7 +120,7 @@ fn map_regions(map: &PlotMap) -> Vec<Region> {
 
     let mut regions: Vec<Region> = Vec::with_capacity(32);
 
-    let mut seen: HashSet<Point> = HashSet::new();
+    let mut seen: HashSet<Vector2D> = HashSet::new();
 
     for p in map.coords() {
         // Already processed this point
@@ -157,7 +157,7 @@ fn calculate_fence_cost_with_discount(map: &PlotMap) -> i64 {
 
 fn read_map(path: &str) -> PlotMap {
     let fh = File::open(path).expect("failed to open input file");
-    return pointmap::from_letter_grid(fh);
+    return from_letter_grid(fh);
 }
 
 fn main() {
@@ -182,14 +182,14 @@ mod day12_tests {
         assert_eq!(expected.legend, actual.legend);
         assert_eq!(expected.area(), actual.area());
 
-        let expected_plots: HashSet<Point> = HashSet::from_iter(expected.plots.iter().cloned());
-        let actual_plots: HashSet<Point> = HashSet::from_iter(actual.plots.iter().cloned());
+        let expected_plots: HashSet<Vector2D> = HashSet::from_iter(expected.plots.iter().cloned());
+        let actual_plots: HashSet<Vector2D> = HashSet::from_iter(actual.plots.iter().cloned());
         assert_eq!(expected_plots, actual_plots);
     }
 
     #[rstest]
     fn test_explore_region_1() {
-        let map = pointmap::from_letter_grid(
+        let map = from_letter_grid(
             "\
             AAAC\n\
             BBAA\n\
@@ -198,10 +198,10 @@ mod day12_tests {
             .as_bytes(),
         );
 
-        let region = explore_region(&map, Point { x: 0, y: 1 });
+        let region = explore_region(&map, Vector2D { x: 0, y: 1 });
         let expected_region = Region {
             legend: 'B',
-            plots: HashSet::from_iter([Point { x: 0, y: 1 }, Point { x: 1, y: 1 }]),
+            plots: HashSet::from_iter([Vector2D { x: 0, y: 1 }, Vector2D { x: 1, y: 1 }]),
         };
 
         assert_eq!(6, region.perimeter());
@@ -211,7 +211,7 @@ mod day12_tests {
 
     #[rstest]
     fn test_explore_region_2() {
-        let map = pointmap::from_letter_grid(
+        let map = from_letter_grid(
             "\
             AAAC\n\
             BBAA\n\
@@ -220,15 +220,15 @@ mod day12_tests {
             .as_bytes(),
         );
 
-        let region = explore_region(&map, Point { x: 1, y: 0 });
+        let region = explore_region(&map, Vector2D { x: 1, y: 0 });
         let expected_region = Region {
             legend: 'A',
             plots: HashSet::from_iter([
-                Point { x: 0, y: 0 },
-                Point { x: 1, y: 0 },
-                Point { x: 2, y: 0 },
-                Point { x: 2, y: 1 },
-                Point { x: 3, y: 1 },
+                Vector2D { x: 0, y: 0 },
+                Vector2D { x: 1, y: 0 },
+                Vector2D { x: 2, y: 0 },
+                Vector2D { x: 2, y: 1 },
+                Vector2D { x: 3, y: 1 },
             ]),
         };
 
@@ -238,7 +238,7 @@ mod day12_tests {
 
     #[rstest]
     fn test_example_1_part_1() {
-        let map = pointmap::from_letter_grid(
+        let map = from_letter_grid(
             "\
             RRRRIICCFF\n\
             RRRRIICCCF\n\
@@ -260,7 +260,7 @@ mod day12_tests {
 
     #[rstest]
     fn test_edge_count() {
-        let map = pointmap::from_letter_grid(
+        let map = from_letter_grid(
             "\
             .S.S.\n\
             SSSSS\n\
@@ -268,13 +268,13 @@ mod day12_tests {
             .as_bytes(),
         );
 
-        let region = explore_region(&map, Point { x: 1, y: 0 });
+        let region = explore_region(&map, Vector2D { x: 1, y: 0 });
         assert_eq!(12, region.edges());
     }
 
     #[rstest]
     fn test_example_4_part_2() {
-        let map = pointmap::from_letter_grid(
+        let map = from_letter_grid(
             "\
             RRRRIICCFF\n\
             RRRRIICCCF\n\
@@ -296,7 +296,7 @@ mod day12_tests {
 
     #[rstest]
     fn test_broken_edges() {
-        let map = pointmap::from_letter_grid(
+        let map = from_letter_grid(
             "\
             RRRR.\n\
             RRRR.\n\
@@ -306,7 +306,7 @@ mod day12_tests {
             .as_bytes(),
         );
 
-        let region = explore_region(&map, Point { x: 0, y: 0 });
+        let region = explore_region(&map, Vector2D { x: 0, y: 0 });
 
         assert_eq!(10, region.edges());
     }
