@@ -1,6 +1,8 @@
 use crate::vector::Vector2D;
 use std::io::{BufRead, BufReader, Read};
+use std::fmt;
 
+#[derive(Clone, PartialEq, Debug)]
 pub struct PointMap<D> {
     map: Vec<D>,
     pub bound: Vector2D,
@@ -29,6 +31,18 @@ pub fn from_letter_grid(input: impl Read) -> PointMap<char> {
 }
 
 impl<D> PointMap<D> {
+    pub fn with_bound(fill: &D, size: Vector2D) -> PointMap::<D>
+        where
+        D: Copy {
+        // bounds are inclusive, so need 1 more for each row
+        let cells = (size.x) * (size.y);
+    
+        PointMap::<D> {
+            map: vec![*fill; cells.try_into().unwrap()],
+            bound: size - Vector2D{x: 1, y: 1},
+        }
+    }
+
     pub fn width(&self) -> i64 {
         self.bound.x + 1
     }
@@ -78,7 +92,31 @@ impl<D> std::ops::Index<&Vector2D> for PointMap<D> {
 }
 
 impl<D> std::ops::IndexMut<&Vector2D> for PointMap<D> {
-    fn index_mut(&mut self, loc: &Vector2D) -> &mut Self::Output {
-        &mut self[&loc]
+    fn index_mut(&mut self, index: &Vector2D) -> &mut Self::Output {
+        if !self.contains(*index) {
+            panic!("point access out of bounds")
+        }
+
+        let linear = index.x + index.y * self.width();
+
+        return &mut self.map[linear as usize]
     }
+}
+
+impl fmt::Display for PointMap<char> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let height: usize = self.height().try_into().unwrap();
+        let width: usize = self.width().try_into().unwrap();
+        for y in 0usize..height {
+            for x in 0usize..width {
+                let linear = y * width + x;
+                write!(f, "{}", self.map[linear])?;
+            }
+
+            write!(f, "\n")?;
+        }
+
+        Ok(())
+    }
+
 }
